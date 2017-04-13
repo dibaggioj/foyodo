@@ -4,6 +4,7 @@ import usb.core
 import usb.util
 import sys
 import time
+import threading
 
 
 """
@@ -27,21 +28,48 @@ Elements 5 and 6 are used to calculate the weight.
 
 """
 
-class Scale:
+class Scale(threading.Thread):
 
     VENDOR_ID = 0x0922  # DYMO
     PRODUCT_ID = 0x8003 # M10
+
     STATUS_STABLE = 2
     STATUS_INCREASING = 4
     STATUS_DECREASING = 5
+
     DATA_MODE_GRAMS = 2
     DATA_MODE_OUNCES = 11
 
+    TOLERANCE_GRAMS = 5
+    TOLERANCE_OUNCES = 0.167
+
+    weight_locked = False
+    previous_weight = 0
+    current_weight = 0
+    data_mode = DATA_MODE_GRAMS
     device = usb.core.find(idVendor=VENDOR_ID, idProduct=PRODUCT_ID)
+
 
     def __init__(self):
         print "## Init scale"
-        self.connect_scale_and_listen()
+        threading.Thread.__init__(self)
+
+        try:
+            self.connect_scale()
+            self.start()
+
+        except Exception as e:
+            print("Exception connecting scale and listening for weight: %s" % str(e))
+
+
+    def run(self):
+        print "## Running scale thread"
+        self.listen_for_weight()
+
+    def is_weight_reduced(self):
+        delta_weight = self.current_weight - self.previous_weight
+        tolerance = self.TOLERANCE_GRAMS if self.data_mode == self.DATA_MODE_GRAMS else self.TOLERANCE_OUNCES
+        return delta_weight > 2 * tolerance
 
 
     def get_previous_weight(self):
@@ -61,25 +89,27 @@ class Scale:
 
 
     def lock_previous_weight(self):
+        self.weight_locked = True
     #     TODO
 
 
     def release_previous_weight(self):
+        self.weight_locked = False
     #     TODO
 
 
-    def connect_scale_and_listen(self):
+    def connect_scale(self):
         # find the USB device
 
         if self.device is None:
-            sys.exit("Could not find scale")
+            raise Exception("Could not find scale")
 
         if self.device.is_kernel_driver_active(0):
             try:
                 self.device.detach_kernel_driver(0)
-                print "kernel driver detached"
+                print "Kernel driver detached"
             except usb.core.USBError as e:
-                sys.exit("Could not detach kernel driver: %s" % str(e))
+                raise Exception("Could not detach kernel driver: %s" % str(e))
         else:
             print "no kernel driver attached"
 
@@ -90,17 +120,15 @@ class Scale:
 
             try:
                 usb.util.claim_interface(self.device, 0)
-                print "claimed device"
+                print "Claimed device"
             except:
-                sys.exit("Could not claim the device: %s" % str(e))
+                raise Exception("Could not claim the device")
 
             # first endpoint
             endpoint = self.device[0][(0,0)][0]
 
-            self.listen_for_weight()
-
         except usb.core.USBError as e:
-            sys.exit("Could not set configuration: %s" % str(e))
+            raise Exception("Could not set configuration: %s" % str(e))
 
 
     def grab_weight(self):
@@ -135,6 +163,8 @@ class Scale:
 
 
     def listen_for_weight(self):
+        # TODO: rework
+
         last_raw_weight = 0
         last_raw_weight_stable = 4
 
@@ -146,16 +176,19 @@ class Scale:
             weight = 0
             print_weight = ""
 
-            data = self.grab_weight(self)
-            if data != None:
+            data = self.grab_weight()
+
+            if data is not None:
+                self.data_mode = data[2]
+
                 raw_weight = data[4] + data[5] * 256
 
                 print data
-                if data[1] == STATUS_STABLE:
+                if data[1] == self.STATUS_STABLE:
                     print "STABLE"
-                elif data[1] == STATUS_INCREASING:
+                elif data[1] == self.STATUS_INCREASING:
                     print "INCREASING"
-                elif data[1] == STATUS_DECREASING:
+                elif data[1] == self.STATUS_DECREASING:
                     print "DECREASING"
                 else:
                     print "UNKNOWN"
@@ -169,11 +202,11 @@ class Scale:
                     last_raw_weight_stable -= 1
 
                 if raw_weight != 0 and last_raw_weight_stable == 0:
-                    if data[2] == DATA_MODE_OUNCES:
+                    if data[2] == self.DATA_MODE_OUNCES:
                         ounces = raw_weight * 0.1
                         weight = math.ceil(ounces)
                         print_weight = "%s oz" % ounces
-                    elif data[2] == DATA_MODE_GRAMS:
+                    elif data[2] == self.DATA_MODE_GRAMS:
                         grams = raw_weight
                         weight = math.ceil(grams)
                         print_weight = "%s g" % grams
