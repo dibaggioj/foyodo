@@ -43,6 +43,7 @@ class Scale(threading.Thread):
     TOLERANCE_GRAMS = 5
     TOLERANCE_OUNCES = 0.167
 
+    __stop = True
     weight_locked = False
     previous_weight = 0
     current_weight = 0
@@ -64,7 +65,12 @@ class Scale(threading.Thread):
 
     def run(self):
         print "## Running scale thread"
+        self.__stop = False
         self.listen_for_weight()
+
+    def stop(self):
+        print("## Stopping scale thread")
+        self.__stop = True
 
     def is_weight_reduced(self):
         delta_weight = self.current_weight - self.previous_weight
@@ -170,7 +176,7 @@ class Scale(threading.Thread):
 
         print "listening for weight..."
 
-        while True:
+        while not self.__stop:
             time.sleep(.5)
 
             weight = 0
