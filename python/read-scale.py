@@ -6,6 +6,9 @@ import sys
 import time
 
 """
+
+TODO: remove
+
 Includes code modified from:
 https://github.com/walac/pyusb/issues/76
 https://gist.github.com/jacksenechal/5862530

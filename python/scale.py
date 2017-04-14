@@ -61,7 +61,7 @@ class Scale(threading.Thread):
 
 
     def __init__(self):
-        print "## Init scale"
+        print("## Init scale")
         threading.Thread.__init__(self)
 
         try:
@@ -73,7 +73,7 @@ class Scale(threading.Thread):
 
 
     def run(self):
-        print "## Running scale thread"
+        print("## Running scale thread")
         self.__stop = False
         self.listen_for_weight()
 
@@ -111,11 +111,11 @@ class Scale(threading.Thread):
         if self.device.is_kernel_driver_active(0):
             try:
                 self.device.detach_kernel_driver(0)
-                print "Kernel driver detached"
+                print("Kernel driver detached")
             except usb.core.USBError as e:
                 raise Exception("Could not detach kernel driver: %s" % str(e))
         else:
-            print "no kernel driver attached"
+            print("no kernel driver attached")
 
         try:
             # use the first/default configuration
@@ -124,7 +124,7 @@ class Scale(threading.Thread):
 
             try:
                 usb.util.claim_interface(self.device, 0)
-                print "Claimed device"
+                print("Claimed device")
             except:
                 raise Exception("Could not claim the device")
 
@@ -155,25 +155,29 @@ class Scale(threading.Thread):
                     data = None
                     if e.args == ('Operation timed out',):
                         attempts -= 1
-                        print "timed out... trying again"
+                        print("timed out... trying again")
                         continue
 
             return data
 
         except usb.core.USBError as e:
-            print "USBError: " + str(e.args)
+            print("USBError: " + str(e.args))
         except IndexError as e:
-            print "IndexError: " + str(e.args)
+            print("IndexError: " + str(e.args))
 
 
     def listen_for_weight(self):
         """
-        Reads weight every {READING_PERIOD_SECONDS} seconds
-        If weight
+        Reads weight every `READING_PERIOD_SECONDS` seconds.
+        If weight fluctuations are within tolerance for `READING_COUNT` readings, then store a new stable weight
+        (a raw weight).
+        If the weight is locked (from the main thread that instantiated this scale), then store the new stable weight as
+        the current weight. Otherwise, store the new stable weight as the locked weight. These `weight_current` and
+        `weight_lock` values will be used later when the main thread checks to see if the weight has been reduced
+        unexpectedly.
         """
-        # TODO: rework
 
-        print "listening for weight..."
+        print("listening for weight...")
 
         raw_weight_stable = 0
         raw_weight_previous = 0
@@ -200,15 +204,15 @@ class Scale(threading.Thread):
                     raw_weight_previous = raw_weight_current
                     count = self.READING_COUNT
 
-            if not self.weight_is_locked:
-                print "Not locked, stable raw weight: %s" % raw_weight_stable
-                self.weight_lock = raw_weight_stable
-            else:
-                print "locked, stable raw weight: %s" % raw_weight_stable
+            if self.weight_is_locked:
+                print("Locked, stable raw weight: %s" % raw_weight_stable)
                 self.weight_current = raw_weight_stable
+            else:
+                print("Not locked, stable raw weight: %s" % raw_weight_stable)
+                self.weight_lock = raw_weight_stable
 
         ################################################################################################################
-        ## REMOVE
+        # # TODO: REMOVE
         #
         # last_raw_weight = 0
         # last_raw_weight_stable = 4
@@ -228,13 +232,13 @@ class Scale(threading.Thread):
         #
         #         print data
         #         if data[1] == self.STATUS_STABLE:
-        #             print "STABLE"
+        #             print("STABLE")
         #         elif data[1] == self.STATUS_INCREASING:
-        #             print "INCREASING"
+        #             print("INCREASING")
         #         elif data[1] == self.STATUS_DECREASING:
-        #             print "DECREASING"
+        #             print("DECREASING")
         #         else:
-        #             print "UNKNOWN"
+        #             print("UNKNOWN")
         #
         #         # +/- 2g
         #         if raw_weight != 0 and abs(raw_weight - last_raw_weight) > 0 and raw_weight != last_raw_weight:
@@ -254,5 +258,5 @@ class Scale(threading.Thread):
         #                 weight = math.ceil(grams)
         #                 print_weight = "%s g" % grams
         #
-        #             print "stable weight: " + print_weight
+        #             print("stable weight: " + print_weight)
         ################################################################################################################
