@@ -8,6 +8,8 @@ import threading
 
 
 """
+Scale class for use in multi-threaded program
+
 Includes code modified from:
 https://github.com/walac/pyusb/issues/76
 https://gist.github.com/jacksenechal/5862530
@@ -22,16 +24,20 @@ Element 2 indicates whether the value is stable, as follows:
 Element 3 indicates units, as follows:
     2: grams
     11: ounces
-Element 4 for calculating the scaling factor when reading in ounces. 255 is the signed value -1, which indicates that the raw value is in tenths, due
-to a scaling factor of 10^-1 or 0.1. For a value of 254, the scaling factor is 10^-2, or 0.01.
-Elements 5 and 6 are used to calculate the weight.
-
+Element 4 for calculating the scaling factor when reading in ounces. 255 is the signed value -1, which indicates that
+the raw value is in tenths, due to a scaling factor of 10^-1 or 0.1. For a value of 254, the scaling factor is 10^-2, or
+0.01.
+Elements 5 and 6 are used to calculate the weight. An increase in the value of element 6 is a larger increase (by a
+factor of 256) than an increase in element 5
 """
 
 class Scale(threading.Thread):
 
     VENDOR_ID = 0x0922  # DYMO
     PRODUCT_ID = 0x8003 # M10
+
+    READING_PERIOD_SECONDS = 0.5
+    READING_COUNT = 4
 
     STATUS_STABLE = 2
     STATUS_INCREASING = 4
@@ -43,10 +49,13 @@ class Scale(threading.Thread):
     TOLERANCE_GRAMS = 5
     TOLERANCE_OUNCES = 0.167
 
+    CONVERSION_RAW_WEIGHT_TO_OUNCES = 10
+    CONVERSION_RAW_WEIGHT_TO_GRAMS = 1
+
     __stop = True
-    weight_locked = False
-    previous_weight = 0
-    current_weight = 0
+    weight_is_locked = False
+    weight_lock = 0
+    weight_current = 0
     data_mode = DATA_MODE_GRAMS
     device = usb.core.find(idVendor=VENDOR_ID, idProduct=PRODUCT_ID)
 
@@ -68,40 +77,29 @@ class Scale(threading.Thread):
         self.__stop = False
         self.listen_for_weight()
 
+
     def stop(self):
         print("## Stopping scale thread")
         self.__stop = True
 
+
     def is_weight_reduced(self):
-        delta_weight = self.current_weight - self.previous_weight
+        delta_weight = self.weight_current - self.weight_lock
         tolerance = self.TOLERANCE_GRAMS if self.data_mode == self.DATA_MODE_GRAMS else self.TOLERANCE_OUNCES
         return delta_weight > 2 * tolerance
 
 
-    def get_previous_weight(self):
-        """
-        Returns previous stable weight
-        :return: integer
-        """
-    #     TODO
-
-
-    def get_current_weight(self):
-        """
-        Returns current stable weight
-        :return: integer
-        """
-    #     TODO
-
-
     def lock_previous_weight(self):
-        self.weight_locked = True
-    #     TODO
+        self.weight_is_locked = True
 
 
     def release_previous_weight(self):
-        self.weight_locked = False
-    #     TODO
+        self.weight_is_locked = False
+
+
+    def get_raw_tolerance(self):
+        return (self.TOLERANCE_GRAMS * self.CONVERSION_RAW_WEIGHT_TO_GRAMS) if self.data_mode == self.DATA_MODE_GRAMS \
+            else (self.TOLERANCE_OUNCES * self.CONVERSION_RAW_WEIGHT_TO_OUNCES)
 
 
     def connect_scale(self):
@@ -169,52 +167,92 @@ class Scale(threading.Thread):
 
 
     def listen_for_weight(self):
+        """
+        Reads weight every {READING_PERIOD_SECONDS} seconds
+        If weight
+        """
         # TODO: rework
-
-        last_raw_weight = 0
-        last_raw_weight_stable = 4
 
         print "listening for weight..."
 
-        while not self.__stop:
-            time.sleep(.5)
+        raw_weight_stable = 0
+        raw_weight_previous = 0
+        count = self.READING_COUNT
 
-            weight = 0
-            print_weight = ""
+        while not self.__stop:
+            time.sleep(self.READING_PERIOD_SECONDS)
 
             data = self.grab_weight()
 
             if data is not None:
                 self.data_mode = data[2]
+                raw_weight_current = data[4] + data[5] * 256
 
-                raw_weight = data[4] + data[5] * 256
+                if (raw_weight_current != 0
+                    and abs(raw_weight_current - raw_weight_previous) < self.get_raw_tolerance()):
 
-                print data
-                if data[1] == self.STATUS_STABLE:
-                    print "STABLE"
-                elif data[1] == self.STATUS_INCREASING:
-                    print "INCREASING"
-                elif data[1] == self.STATUS_DECREASING:
-                    print "DECREASING"
+                    count -= 1
+                    if count <= 0:
+                        raw_weight_stable = raw_weight_current  # TODO: maybe use previous weight or average over readings
+                        count = self.READING_COUNT
+
                 else:
-                    print "UNKNOWN"
+                    raw_weight_previous = raw_weight_current
+                    count = self.READING_COUNT
 
-                # +/- 2g
-                if raw_weight != 0 and abs(raw_weight - last_raw_weight) > 0 and raw_weight != last_raw_weight:
-                    last_raw_weight_stable = 4
-                    last_raw_weight = raw_weight
+            if not self.weight_is_locked:
+                print "Not locked, stable raw weight: %s" % raw_weight_stable
+                self.weight_lock = raw_weight_stable
+            else:
+                print "locked, stable raw weight: %s" % raw_weight_stable
+                self.weight_current = raw_weight_stable
 
-                if raw_weight != 0 and last_raw_weight_stable >= 0:
-                    last_raw_weight_stable -= 1
-
-                if raw_weight != 0 and last_raw_weight_stable == 0:
-                    if data[2] == self.DATA_MODE_OUNCES:
-                        ounces = raw_weight * 0.1
-                        weight = math.ceil(ounces)
-                        print_weight = "%s oz" % ounces
-                    elif data[2] == self.DATA_MODE_GRAMS:
-                        grams = raw_weight
-                        weight = math.ceil(grams)
-                        print_weight = "%s g" % grams
-
-                    print "stable weight: " + print_weight
+        ################################################################################################################
+        ## REMOVE
+        #
+        # last_raw_weight = 0
+        # last_raw_weight_stable = 4
+        #
+        # while not self.__stop:
+        #     time.sleep(.5)
+        #
+        #     weight = 0
+        #     print_weight = ""
+        #
+        #     data = self.grab_weight()
+        #
+        #     if data is not None:
+        #         self.data_mode = data[2]
+        #
+        #         raw_weight = data[4] + data[5] * 256
+        #
+        #         print data
+        #         if data[1] == self.STATUS_STABLE:
+        #             print "STABLE"
+        #         elif data[1] == self.STATUS_INCREASING:
+        #             print "INCREASING"
+        #         elif data[1] == self.STATUS_DECREASING:
+        #             print "DECREASING"
+        #         else:
+        #             print "UNKNOWN"
+        #
+        #         # +/- 2g
+        #         if raw_weight != 0 and abs(raw_weight - last_raw_weight) > 0 and raw_weight != last_raw_weight:
+        #             last_raw_weight_stable = 4
+        #             last_raw_weight = raw_weight
+        #
+        #         if raw_weight != 0 and last_raw_weight_stable >= 0:
+        #             last_raw_weight_stable -= 1
+        #
+        #         if raw_weight != 0 and last_raw_weight_stable == 0:
+        #             if data[2] == self.DATA_MODE_OUNCES:
+        #                 ounces = raw_weight * 0.1
+        #                 weight = math.ceil(ounces)
+        #                 print_weight = "%s oz" % ounces
+        #             elif data[2] == self.DATA_MODE_GRAMS:
+        #                 grams = raw_weight
+        #                 weight = math.ceil(grams)
+        #                 print_weight = "%s g" % grams
+        #
+        #             print "stable weight: " + print_weight
+        ################################################################################################################
