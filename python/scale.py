@@ -52,7 +52,7 @@ class Scale(threading.Thread):
     CONVERSION_RAW_WEIGHT_TO_OUNCES = 10
     CONVERSION_RAW_WEIGHT_TO_GRAMS = 1
 
-    __stop = True
+    # __stop = True
     weight_is_locked = False
     weight_lock = 0
     weight_current = 0
@@ -62,7 +62,8 @@ class Scale(threading.Thread):
 
     def __init__(self):
         print("## Init scale")
-        threading.Thread.__init__(self)
+        super(Scale, self).__init__()
+        self._stop = threading.Event()
 
         try:
             self.connect_scale()
@@ -74,14 +75,18 @@ class Scale(threading.Thread):
 
     def run(self):
         print("## Running scale thread")
-        self.__stop = False
+        # self.__stop = False
         self.listen_for_weight()
 
 
     def stop(self):
         print("## Stopping scale thread")
-        self.__stop = True
+        self._stop.set()
+        # self.__stop = True
 
+
+    def stopped(self):
+        return self._stop.isSet()
 
     def is_weight_reduced(self):
         delta_weight = self.weight_current - self.weight_lock
@@ -183,7 +188,7 @@ class Scale(threading.Thread):
         raw_weight_previous = 0
         count = self.READING_COUNT
 
-        while not self.__stop:
+        while not self.stopped():
             time.sleep(self.READING_PERIOD_SECONDS)
 
             data = self.grab_weight()
@@ -192,14 +197,11 @@ class Scale(threading.Thread):
                 self.data_mode = data[2]
                 raw_weight_current = data[4] + data[5] * 256
 
-                if (raw_weight_current != 0
-                    and abs(raw_weight_current - raw_weight_previous) < self.get_raw_tolerance()):
-
+                if abs(raw_weight_current - raw_weight_previous) < self.get_raw_tolerance():
                     count -= 1
                     if count <= 0:
                         raw_weight_stable = raw_weight_current  # TODO: maybe use previous weight or average over readings
                         count = self.READING_COUNT
-
                 else:
                     raw_weight_previous = raw_weight_current
                     count = self.READING_COUNT
