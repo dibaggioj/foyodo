@@ -178,8 +178,6 @@ class Scale(threading.Thread):
         count = self.READING_COUNT
 
         while not self.stopped():
-            time.sleep(self.READING_PERIOD_SECONDS)
-
             data = self.grab_weight()
 
             if data is not None:
@@ -201,6 +199,9 @@ class Scale(threading.Thread):
             else:
                 print("Not locked, stable raw weight: %s" % raw_weight_stable)
                 self.weight_lock = raw_weight_stable
+
+            time.sleep(self.READING_PERIOD_SECONDS)
+
 
         ################################################################################################################
         # # TODO: REMOVE
