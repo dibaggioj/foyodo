@@ -1,8 +1,5 @@
-import math
-import os
 import usb.core
 import usb.util
-import sys
 import time
 import threading
 
@@ -31,10 +28,11 @@ Elements 5 and 6 are used to calculate the weight. An increase in the value of e
 factor of 256) than an increase in element 5
 """
 
+
 class Scale(threading.Thread):
 
-    VENDOR_ID = 0x0922  # DYMO
-    PRODUCT_ID = 0x8003 # M10
+    VENDOR_ID = 0x0922      # DYMO
+    PRODUCT_ID = 0x8003     # M10
 
     READING_PERIOD_SECONDS = 0.5
     READING_COUNT = 4
@@ -52,63 +50,52 @@ class Scale(threading.Thread):
     CONVERSION_RAW_WEIGHT_TO_OUNCES = 10
     CONVERSION_RAW_WEIGHT_TO_GRAMS = 1
 
-    # __stop = True
     weight_is_locked = False
     weight_lock = 0
     weight_current = 0
     data_mode = DATA_MODE_GRAMS
     device = usb.core.find(idVendor=VENDOR_ID, idProduct=PRODUCT_ID)
 
-
     def __init__(self):
-        print("## Init scale")
         super(Scale, self).__init__()
         self._stop = threading.Event()
 
+    def start(self):
+        super(Scale, self).start()
         try:
             self.connect_scale()
-            self.start()
-
         except Exception as e:
             print("Exception connecting scale and listening for weight: %s" % str(e))
 
-
-    def run(self):
-        print("## Running scale thread")
-        # self.__stop = False
-        self.listen_for_weight()
-
-
     def stop(self):
-        print("## Stopping scale thread")
+        print("Stopping scale thread...")
         self._stop.set()
-        # self.__stop = True
-
 
     def stopped(self):
         return self._stop.isSet()
+
+    def run(self):
+        self.listen_for_weight()
 
     def is_weight_reduced(self):
         delta_weight = self.weight_current - self.weight_lock
         tolerance = self.TOLERANCE_GRAMS if self.data_mode == self.DATA_MODE_GRAMS else self.TOLERANCE_OUNCES
         return delta_weight > 2 * tolerance
 
-
     def lock_previous_weight(self):
         self.weight_is_locked = True
 
-
     def release_previous_weight(self):
         self.weight_is_locked = False
-
 
     def get_raw_tolerance(self):
         return (self.TOLERANCE_GRAMS * self.CONVERSION_RAW_WEIGHT_TO_GRAMS) if self.data_mode == self.DATA_MODE_GRAMS \
             else (self.TOLERANCE_OUNCES * self.CONVERSION_RAW_WEIGHT_TO_OUNCES)
 
-
     def connect_scale(self):
-        # find the USB device
+        """
+        Finds the USB device
+        """
 
         if self.device is None:
             raise Exception("Could not find scale")
@@ -139,8 +126,11 @@ class Scale(threading.Thread):
         except usb.core.USBError as e:
             raise Exception("Could not set configuration: %s" % str(e))
 
-
     def grab_weight(self):
+        """
+        Gets a data packet from the USB scale
+        :return: array of integers
+        """
         data = None
 
         if self.device is None:
@@ -169,7 +159,6 @@ class Scale(threading.Thread):
             print("USBError: " + str(e.args))
         except IndexError as e:
             print("IndexError: " + str(e.args))
-
 
     def listen_for_weight(self):
         """
