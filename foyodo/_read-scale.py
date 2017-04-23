@@ -6,6 +6,9 @@ import sys
 import time
 
 """
+
+TODO: remove
+
 Includes code modified from:
 https://github.com/walac/pyusb/issues/76
 https://gist.github.com/jacksenechal/5862530
@@ -78,7 +81,7 @@ def grab_weight():
 
         # read a data packet
         attempts = 10
-        
+
         while data is None and attempts > 0:
             try:
                 data = device.read(endpoint.bEndpointAddress, endpoint.wMaxPacketSize)
@@ -150,11 +153,7 @@ def listen_for_weight():
                 print "stable weight: " + print_weight
 
 
-def main():
-    connect_scale_and_listen()
-
-
-main()
+z
 
 
 
