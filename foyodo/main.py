@@ -9,7 +9,7 @@ from twilio.rest import Client
 def main():
     print "Starting FoYoDo program..."
 
-    with open("config.json", 'r') as config_file:
+    with open("./config.json", 'r') as config_file:
         config = json.load(config_file)
 
     try:
