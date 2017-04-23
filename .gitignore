@@ -93,5 +93,6 @@ ENV/
 
 .idea/
 config.json
+foyodo/youtube-upload-master/*.json
 
 
