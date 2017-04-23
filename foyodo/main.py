@@ -1,7 +1,7 @@
 import signal
 import sys
 
-from scale import Scale
+from lib.scale import Scale
 
 def main():
     print "Starting FoYoDo program..."
