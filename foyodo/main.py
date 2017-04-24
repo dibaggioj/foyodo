@@ -1,9 +1,21 @@
 import json
 import signal
 import sys
+import subprocess
+import time
+import datetime
+import picamera
+
+import RPi.GPIO as GPIO
 
 from lib.scale import Scale
 from twilio.rest import Client
+
+
+GPIO.setmode(GPIO.BCM)
+
+TRIG = 20
+ECHO = 26
 
 
 def main():
@@ -18,9 +30,95 @@ def main():
         scale = Scale()
         scale.start()
 
+        camera = picamera.PiCamera()
+        programflag = True
+        recordflag = False
+        idleflag = True
+
+        print "Distance Measurement In Progress"
+
+        GPIO.setup(TRIG,GPIO.OUT)
+        GPIO.setup(ECHO,GPIO.IN)
+
+        GPIO.output(TRIG, False)
+        print "Waiting For Sensor To Settle"
+        time.sleep(2)
+        while programflag is True:
+            while idleflag is True:
+                GPIO.output(TRIG, True)
+                time.sleep(0.00001)
+                GPIO.output(TRIG, False)
+
+                while GPIO.input(ECHO)==0:
+                    pulse_start = time.time()
+
+                while GPIO.input(ECHO)==1:
+                    pulse_end = time.time()
+
+                pulse_duration = pulse_end - pulse_start
+                distance = pulse_duration * 17150
+                distance = round(distance, 2)
+                # print "Distance:",distance,"cm"
+
+                if distance<=10:
+                     idleflag = False
+                     recordflag = True
+            print "movement detected"
+
+            while recordflag is True:
+                scale.lock_previous_weight()
+                print "Locking weight at: " + scale.weight_lock
+                print "Start Recording"
+                ts = time.time()
+                vid_name = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H:%M:%S')
+                camera.capture('picture/'+vid_name+'.jpg')
+                camera.start_recording('video/'+vid_name+'.h264')
+                time.sleep(10)
+                while True:
+                    GPIO.output(TRIG, True)
+                        time.sleep(0.00001)
+                        GPIO.output(TRIG, False)
+
+                        while GPIO.input(ECHO)==0:
+                                pulse_start = time.time()
+
+                        while GPIO.input(ECHO)==1:
+                                pulse_end = time.time()
+
+                        pulse_duration = pulse_end - pulse_start
+                        distance = pulse_duration * 17150
+                        distance = round(distance, 2)
+                    # print "Recording, distance away: ",distance ,"cm"
+
+                    if distance >= 30:
+                        break
+
+                print "stop recording"
+                camera.stop_recording()
+                recordflag = False
+
+            time.sleep(5)   # wait for video to finish encoding
+
+            print "Current weight is: " + scale.weight_current
+            print "Done recording video. Is weight reduced: " + scale.is_weight_reduced()
+
+            if scale.is_weight_reduced():
+                rc = subprocess.call( ["youtube-upload", "--title="+vid_name, "--description='possible theft'",
+                                       "--playlist='FoYoDo'", "--client-secret=client_secret.json",
+                                       "/home/pi/Development/Python/video/"+vid_name+".h264"])
+
+            print "Current weight is: " + scale.weight_current
+            print "Releasing weight"
+            scale.release_previous_weight()
+
+            idleflag = True
+
+
+        GPIO.cleanup()
+
         # call scale.lock_previous_weight when motion is detected to stop updating the stable weight value
         # call scale.is_weight_reduced when motion is no longer detected to see if the stable weight has decreased
-        # call scale.lock_previous_weight when motion is no longer detected to start updating the stable weight value
+        # call scale.release_previous_weight when motion is no longer detected to start updating the stable weight value
         #       again
         #
         """
