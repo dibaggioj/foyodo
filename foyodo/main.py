@@ -126,8 +126,9 @@ def main():
         """
         # The following can be used to send SMS to the user. "#TODO" should be replaced with the link to the new video:
 
-        message_body = "Hi {0}, your package may have been disturbed. See the video here: {1}".format(
-            config["users"][0]["first_name"], "https://youtube.com/#TODO")
+        message_body = "Hi {0}, your package may have been disturbed. See the video here: " \
+                       "https://www.youtube.com/embed/videoseries?list={1}".format(config["users"][0]["first_name"],
+                                                                                   config["youtube"]["playlist"])
         twilio_client.messages.create(from_=config["twilio"]["phone"], to=config["users"][0]["phone"],
                                       body=unicode(message_body))
         """
