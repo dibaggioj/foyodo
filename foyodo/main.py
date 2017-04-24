@@ -30,6 +30,8 @@ def main():
         scale = Scale()
         scale.start()
 
+        signal.pause()
+
         camera = picamera.PiCamera()
         programflag = True
         recordflag = False
@@ -130,7 +132,7 @@ def main():
                                       body=unicode(message_body))
         """
 
-        signal.pause()
+
 
     except (KeyboardInterrupt, SystemExit):
         print "Stopping FoYoDo program..."
