@@ -15,8 +15,8 @@ camera = picamera.PiCamera()
 
 print "Distance Measurement In Progress"
 
-GPIO.setup(TRIG,GPIO.OUT)
-GPIO.setup(ECHO,GPIO.IN)
+GPIO.setup(TRIG, GPIO.OUT)
+GPIO.setup(ECHO, GPIO.IN)
 
 GPIO.output(TRIG, False)
 print "Waiting For Sensor To Settle"
@@ -27,20 +27,20 @@ while programflag is True:
         time.sleep(0.00001)
         GPIO.output(TRIG, False)
 
-        while GPIO.input(ECHO)==0:
+        while GPIO.input(ECHO) == 0:
             pulse_start = time.time()
 
-        while GPIO.input(ECHO)==1:
+        while GPIO.input(ECHO) == 1:
             pulse_end = time.time()
 
         pulse_duration = pulse_end - pulse_start
         distance = pulse_duration * 17150
         distance = round(distance, 2)
-        print "Distance:",distance,"cm"
+        print "Distance:", distance, "cm"
 
-        if distance<=10:
-             idleflag = False
-             recordflag = True
+        if distance <= 10:
+            idleflag = False
+            recordflag = True
     print "movement detected"
 
     while recordflag is True:
@@ -52,18 +52,18 @@ while programflag is True:
         time.sleep(10)
         while True:
             GPIO.output(TRIG, True)
-                time.sleep(0.00001)
-                GPIO.output(TRIG, False)
+            time.sleep(0.00001)
+            GPIO.output(TRIG, False)
 
-                while GPIO.input(ECHO)==0:
-                        pulse_start = time.time()
+            while GPIO.input(ECHO) == 0:
+                pulse_start = time.time()
 
-                while GPIO.input(ECHO)==1:
-                        pulse_end = time.time()
+            while GPIO.input(ECHO) == 1:
+                pulse_end = time.time()
 
-                pulse_duration = pulse_end - pulse_start
-                distance = pulse_duration * 17150
-                distance = round(distance, 2)
+            pulse_duration = pulse_end - pulse_start
+            distance = pulse_duration * 17150
+            distance = round(distance, 2)
             print "Recording, distance away: ",distance ,"cm"
 
             if distance >= 30:
@@ -73,14 +73,10 @@ while programflag is True:
         camera.stop_recording()
         recordflag = False
 
-
-
     time.sleep(5)
-    rc = subprocess.call( ["youtube-upload", "--title="+vid_name, "--description='possible theft'", "--playlist='FoYoDo'", 
-        "--client-secret=client_secret.json", "/home/pi/Development/Python/video/"+vid_name+".h264"])
-    
+    rc = subprocess.call(["youtube-upload", "--title="+vid_name, "--description='possible theft'",
+                          "--playlist='FoYoDo'", "--client-secret=client_secret.json",
+                          "/home/pi/Development/Python/video/"+vid_name+".h264"])
     idleflag = True
 
-
 GPIO.cleanup()
-

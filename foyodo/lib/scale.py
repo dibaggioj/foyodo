@@ -1,8 +1,7 @@
+import threading
+import time
 import usb.core
 import usb.util
-import time
-import threading
-
 
 """
 Scale class for use in multi-threaded program
@@ -30,6 +29,18 @@ factor of 256) than an increase in element 5
 
 
 class Scale(threading.Thread):
+    """
+    Scale thread
+
+    Instantiate with:
+    scale = Scale()
+
+    Start with:
+    scale.start()
+
+    Stop with (to free up resources):
+    scale.stop()
+    """
 
     VENDOR_ID = 0x0922      # DYMO
     PRODUCT_ID = 0x8003     # M10
