@@ -64,6 +64,7 @@ class Capture(threading.Thread):
         print("Stopping capture thread...")
         self._stop.set()
         self.scale.stop()
+        self.programflag = False
 
     def stopped(self):
         return self._stop.isSet()
