@@ -1,3 +1,4 @@
+import signal
 import sys
 
 from lib.capture import Capture
@@ -10,6 +11,7 @@ def main():
 
     try:
         capture.start()
+        signal.pause()  # sleep until KeyboardInterrupt or SystemExit signal is received
 
     except (KeyboardInterrupt, SystemExit):
         print "Stopping FoYoDo program..."
