@@ -30,7 +30,7 @@ def main():
         scale = Scale()
         scale.start()
 
-        signal.pause()
+        # signal.pause()
 
         camera = picamera.PiCamera()
         programflag = True
@@ -39,8 +39,8 @@ def main():
 
         print "Distance Measurement In Progress"
 
-        GPIO.setup(TRIG,GPIO.OUT)
-        GPIO.setup(ECHO,GPIO.IN)
+        GPIO.setup(TRIG, GPIO.OUT)
+        GPIO.setup(ECHO, GPIO.IN)
 
         GPIO.output(TRIG, False)
         print "Waiting For Sensor To Settle"
@@ -51,10 +51,10 @@ def main():
                 time.sleep(0.00001)
                 GPIO.output(TRIG, False)
 
-                while GPIO.input(ECHO)==0:
+                while GPIO.input(ECHO) == 0:
                     pulse_start = time.time()
 
-                while GPIO.input(ECHO)==1:
+                while GPIO.input(ECHO) == 1:
                     pulse_end = time.time()
 
                 pulse_duration = pulse_end - pulse_start
@@ -62,9 +62,9 @@ def main():
                 distance = round(distance, 2)
                 # print "Distance:",distance,"cm"
 
-                if distance<=10:
-                     idleflag = False
-                     recordflag = True
+                if distance <= 10:
+                    idleflag = False
+                    recordflag = True
             print "movement detected"
 
             while recordflag is True:
