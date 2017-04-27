@@ -103,8 +103,8 @@ class Capture(threading.Thread):
                 print "Start Recording"
                 ts = time.time()
                 vid_name = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H:%M:%S')
-                self.camera.capture('picture/'+vid_name+'.jpg')
-                self.camera.start_recording('video/'+vid_name+'.h264')
+                self.camera.capture('../picture/'+vid_name+'.jpg')
+                self.camera.start_recording('../video/'+vid_name+'.h264')
                 time.sleep(10)
                 while True:
                     GPIO.output(self.TRIG, True)
@@ -130,8 +130,8 @@ class Capture(threading.Thread):
                 self.recordflag = False
 
             time.sleep(5)
-            print "Current weight is: " + self.scale.weight_current
-            print "Done recording video. Is weight reduced: " + self.scale.is_weight_reduced()
+            print("Current weight is: %s" % self.scale.weight_current)
+            print("Done recording video. Is weight reduced: %s" % self.scale.is_weight_reduced())
 
             if self.scale.is_weight_reduced():
                 global CONFIG
@@ -140,7 +140,7 @@ class Capture(threading.Thread):
                                       "--client-secret=client_secret.json",
                                       "/home/pi/Development/Python/video/"+vid_name+".h264"])
 
-            print "Current weight is: " + self.scale.weight_current
+            print("Current weight is: %s" % self.scale.weight_current)
             print "Releasing weight"
             self.scale.release_previous_weight()
 
