@@ -45,7 +45,6 @@ class Capture(threading.Thread):
     with open("./config.json", 'r') as config_file:
         CONFIG = json.load(config_file)
 
-    programflag = True
     recordflag = False
     idleflag = True
     camera = picamera.PiCamera()
@@ -64,7 +63,6 @@ class Capture(threading.Thread):
         print("Stopping capture thread...")
         self._stop.set()
         self.scale.stop()
-        self.programflag = False
 
     def stopped(self):
         return self._stop.isSet()
@@ -76,7 +74,7 @@ class Capture(threading.Thread):
         GPIO.output(self.TRIG, False)
         print "Waiting For Sensor To Settle"
         time.sleep(2)
-        while self.programflag is True:
+        while not self.stopped():
             while self.idleflag is True:
                 GPIO.output(self.TRIG, True)
                 time.sleep(0.00001)
