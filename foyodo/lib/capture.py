@@ -42,22 +42,21 @@ class Capture(threading.Thread):
     TRIG = 20
     ECHO = 26
 
-    with open("./config.json", 'r') as config_file:
-        CONFIG = json.load(config_file)
-
     recordflag = False
     idleflag = True
     camera = picamera.PiCamera()
     scale = Scale()
 
-    twilio_client = Client(CONFIG["twilio"]["account"], CONFIG["twilio"]["token"])
 
     def __init__(self):
         super(Capture, self).__init__()
         self._stop = threading.Event()
+        with open("./config.json", 'r') as config_file:
+            self.CONFIG = json.load(config_file)
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.TRIG, GPIO.OUT)
         GPIO.setup(self.ECHO, GPIO.IN)
+        self.twilio_client = Client(self.CONFIG["twilio"]["account"], self.CONFIG["twilio"]["token"])
 
     def stop(self):
         print("Stopping capture thread...")
@@ -96,10 +95,10 @@ class Capture(threading.Thread):
                     self.idleflag = False
                     self.recordflag = True
             print "movement detected"
+            self.scale.lock_previous_weight()
+            print("Locking weight at: %s" % self.scale.weight_lock)
 
             while self.recordflag is True:
-                self.scale.lock_previous_weight()
-                print("Locking weight at: %s" % self.scale.weight_lock)
                 print "Start Recording"
                 ts = time.time()
                 vid_name = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H:%M:%S')
@@ -134,9 +133,8 @@ class Capture(threading.Thread):
             print("Done recording video. Is weight reduced: %s" % self.scale.is_weight_reduced())
 
             if self.scale.is_weight_reduced():
-                global CONFIG
                 rc = subprocess.call(["youtube-upload", "--title="+vid_name, "--description='possible theft'",
-                                      "--playlist='"+CONFIG["youtube"]["playlist_name"]+"'",
+                                      "--playlist='"+self.CONFIG["youtube"]["playlist_name"]+"'",
                                       "--client-secret=client_secret.json",
                                       "/home/pi/Development/Python/video/"+vid_name+".h264"])
 
