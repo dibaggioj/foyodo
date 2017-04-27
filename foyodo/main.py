@@ -16,6 +16,7 @@ def main():
     except (KeyboardInterrupt, SystemExit):
         print "Stopping FoYoDo program..."
         capture.stop()
+        capture.join()
         sys.exit()
 
 main()

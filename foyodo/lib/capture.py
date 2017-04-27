@@ -63,6 +63,7 @@ class Capture(threading.Thread):
         print("Stopping capture thread...")
         self._stop.set()
         self.scale.stop()
+        self.scale.join()
 
     def stopped(self):
         return self._stop.isSet()
@@ -98,7 +99,7 @@ class Capture(threading.Thread):
 
             while self.recordflag is True:
                 self.scale.lock_previous_weight()
-                print "Locking weight at: " + self.scale.weight_lock
+                print("Locking weight at: %s" % self.scale.weight_lock)
                 print "Start Recording"
                 ts = time.time()
                 vid_name = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H:%M:%S')
