@@ -11,7 +11,7 @@ Kyle Etsler
 - Dymo M10 USB scale
 - HC-SR04 Ultrasonic Sensor
 
-## /config.json schema
+## /foyodo/config.json schema
 
 ```
 {
@@ -31,7 +31,7 @@ Kyle Etsler
 }
 ```
 
-## /youtube.json schema
+## /foyodo/youtube.json schema
 
 ```
 {
