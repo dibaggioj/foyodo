@@ -51,7 +51,7 @@ class Capture(threading.Thread):
     def __init__(self):
         super(Capture, self).__init__()
         self._stop = threading.Event()
-        with open("./config.json", 'r') as config_file:
+        with open("config.json", 'r') as config_file:
             self.CONFIG = json.load(config_file)
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.TRIG, GPIO.OUT)
