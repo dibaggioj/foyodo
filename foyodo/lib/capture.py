@@ -1,5 +1,6 @@
 import datetime
 import json
+import os
 import picamera
 import RPi.GPIO as GPIO
 import subprocess
@@ -8,16 +9,6 @@ import time
 
 from scale import Scale
 from twilio.rest import Client
-
-"""
-# The following can be used to send SMS to the user. "#TODO" should be replaced with the link to the new video:
-
-message_body = "Hi {0}, your package may have been disturbed. See the video here: " \
-               "https://www.youtube.com/embed/videoseries?list={1}".format(CONFIG["users"][0]["first_name"],
-                                                                           CONFIG["youtube"]["playlist_id"])
-twilio_client.messages.create(from_=CONFIG["twilio"]["phone"], to=CONFIG["users"][0]["phone"],
-                              body=unicode(message_body))
-"""
 
 
 class Capture(threading.Thread):
@@ -51,8 +42,12 @@ class Capture(threading.Thread):
     def __init__(self):
         super(Capture, self).__init__()
         self._stop = threading.Event()
-        with open("config.json", 'r') as config_file:
+
+        with open(os.getcwd() + "/config.json", 'r') as config_file:
             self.CONFIG = json.load(config_file)
+        with open(os.getcwd() + "/youtube.json", 'r') as youtube_file:
+            self.YOUTUBE = json.load(youtube_file)
+
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.TRIG, GPIO.OUT)
         GPIO.setup(self.ECHO, GPIO.IN)
@@ -66,6 +61,16 @@ class Capture(threading.Thread):
 
     def stopped(self):
         return self._stop.isSet()
+
+    def send_message(self):
+        message_body = "Hi {0}, your package may have been disturbed. See the video here: " \
+                       "https://www.youtube.com/embed/videoseries?list={1}".format(
+                           self.CONFIG["users"][0]["first_name"],
+                           self.YOUTUBE["installed"]["playlist_id"])
+
+        self.twilio_client.messages.create(from_=self.CONFIG["twilio"]["phone"],
+                                           to=self.CONFIG["users"][0]["phone"],
+                                           body=unicode(message_body))
 
     def run(self):
         print("## starting scale...")
@@ -133,10 +138,14 @@ class Capture(threading.Thread):
             print("Done recording video. Is weight reduced: %s" % self.scale.is_weight_reduced())
 
             if self.scale.is_weight_reduced():
-                rc = subprocess.call(["youtube-upload", "--title="+vid_name, "--description='possible theft'",
-                                      "--playlist='"+self.CONFIG["youtube"]["playlist_name"]+"'",
-                                      "--client-secret=client_secret.json",
-                                      "/home/pi/Development/Python/video/"+vid_name+".h264"])
+                rc = subprocess.call(["youtube-upload",
+                                      "--title="+vid_name,
+                                      "--description='possible theft'",
+                                      "--playlist='"+self.YOUTUBE["installed"]["playlist_name"]+"'",
+                                      "--client-secret="+os.getcwd()+"/youtube.json",
+                                      os.getcwd() + "/video/"+vid_name+".h264"])
+
+                self.send_message()
 
             print("Current weight is: %s" % self.scale.weight_current)
             print "Releasing weight"

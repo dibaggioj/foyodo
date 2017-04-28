@@ -1,3 +1,4 @@
+import os
 import signal
 import sys
 
@@ -6,6 +7,9 @@ from lib.capture import Capture
 
 def main():
     print "Starting FoYoDo program..."
+
+    # Set current directory to directory containing main.py. Can get this directory elsewhere with `os.getcwd()`
+    os.chdir(os.path.realpath(__file__+"/.."))
 
     capture = Capture()
 
