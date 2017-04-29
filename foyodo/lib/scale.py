@@ -82,7 +82,7 @@ class Scale(threading.Thread):
         super(Scale, self).__init__()
         self._stop = threading.Event()
 
-        with open(os.getcwd() + "/config.json", 'r') as config_file:
+        with open(os.getcwd() + "/foyodo/config.json", 'r') as config_file:
             self.CONFIG = json.load(config_file)
 
         self.twilio_client = Client(self.CONFIG["twilio"]["account"], self.CONFIG["twilio"]["token"])
