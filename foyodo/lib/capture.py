@@ -55,9 +55,9 @@ class Capture(threading.Thread):
 
     def stop(self):
         print("Stopping capture thread...")
-        self._stop.set()
         self.scale.stop()
         self.scale.join()
+        self._stop.set()
 
     def stopped(self):
         return self._stop.isSet()
