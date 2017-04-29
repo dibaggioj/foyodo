@@ -62,6 +62,7 @@ class Scale(threading.Thread):
     CONVERSION_RAW_WEIGHT_TO_GRAMS = 1
 
     connected = False
+    connecting = False
     weight_is_locked = False
     weight_lock = 0
     weight_current = 0
@@ -108,8 +109,11 @@ class Scale(threading.Thread):
         """
         Finds the USB device
         """
+        print "Connecting scale..."
+        self.connecting = True
 
         if self.device is None:
+            self.connecting = False
             raise Exception("Could not find scale")
 
         if self.device.is_kernel_driver_active(0):
@@ -117,6 +121,7 @@ class Scale(threading.Thread):
                 self.device.detach_kernel_driver(0)
                 print("Kernel driver detached")
             except usb.core.USBError as e:
+                self.connecting = False
                 raise Exception("Could not detach kernel driver: %s" % str(e))
         else:
             print("no kernel driver attached")
@@ -131,13 +136,17 @@ class Scale(threading.Thread):
                 self.connected = True
                 print("Claimed device")
             except:
+                self.connecting = False
                 raise Exception("Could not claim the device")
 
             # first endpoint
             endpoint = self.device[0][(0,0)][0]
 
         except usb.core.USBError as e:
+            self.connecting = False
             raise Exception("Could not set configuration: %s" % str(e))
+
+        self.connecting = False
 
     def grab_weight(self):
         """
@@ -201,7 +210,8 @@ class Scale(threading.Thread):
                     if abs(raw_weight_current - raw_weight_previous) < self.get_raw_tolerance():
                         count -= 1
                         if count <= 0:
-                            raw_weight_stable = raw_weight_current  # TODO: use median weight or average weight of 4 weights
+                            # TODO: use median weight or average weight of 4 weights
+                            raw_weight_stable = raw_weight_current
                             count = self.READING_COUNT
                     else:
                         raw_weight_previous = raw_weight_current
@@ -214,7 +224,11 @@ class Scale(threading.Thread):
                     print("Not locked, stable raw weight: %s" % raw_weight_stable)
                     self.weight_lock = raw_weight_stable
             else:
-                print "Scale not connected"
+                print "Scale is not connected"
+                if self.connecting:
+                    print "Scale is already connecting"
+                else:
+                    self.connect_scale()
 
             time.sleep(self.READING_PERIOD_SECONDS)
 

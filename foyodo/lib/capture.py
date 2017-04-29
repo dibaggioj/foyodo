@@ -54,9 +54,9 @@ class Capture(threading.Thread):
         self.twilio_client = Client(self.CONFIG["twilio"]["account"], self.CONFIG["twilio"]["token"])
 
     def stop(self):
-        print("Stopping capture thread...")
         self.scale.stop()
         self.scale.join()
+        print("Stopping capture thread...")
         self._stop.set()
 
     def stopped(self):
