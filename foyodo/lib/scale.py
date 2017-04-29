@@ -1,8 +1,8 @@
+import numpy
+import threading
+import time
 import usb.core
 import usb.util
-import time
-import threading
-
 
 """
 Scale class for use in multi-threaded program
@@ -30,6 +30,18 @@ factor of 256) than an increase in element 5
 
 
 class Scale(threading.Thread):
+    """
+    Scale thread
+
+    Instantiate with:
+    scale = Scale()
+
+    Start with:
+    scale.start()
+
+    Stop with (to free up resources):
+    scale.stop()
+    """
 
     VENDOR_ID = 0x0922      # DYMO
     PRODUCT_ID = 0x8003     # M10
@@ -50,11 +62,13 @@ class Scale(threading.Thread):
     CONVERSION_RAW_WEIGHT_TO_OUNCES = 10
     CONVERSION_RAW_WEIGHT_TO_GRAMS = 1
 
+    connected = False
+    connecting_flag = False
     weight_is_locked = False
     weight_lock = 0
     weight_current = 0
     data_mode = DATA_MODE_GRAMS
-    device = usb.core.find(idVendor=VENDOR_ID, idProduct=PRODUCT_ID)
+
 
     def __init__(self):
         super(Scale, self).__init__()
@@ -65,7 +79,7 @@ class Scale(threading.Thread):
         try:
             self.connect_scale()
         except Exception as e:
-            print("Exception connecting scale and listening for weight: %s" % str(e))
+            print("Exception occurred while connecting to scale\n%s" % str(e))
 
     def stop(self):
         print("Stopping scale thread...")
@@ -80,7 +94,7 @@ class Scale(threading.Thread):
     def is_weight_reduced(self):
         delta_weight = self.weight_current - self.weight_lock
         tolerance = self.TOLERANCE_GRAMS if self.data_mode == self.DATA_MODE_GRAMS else self.TOLERANCE_OUNCES
-        return delta_weight > 2 * tolerance
+        return delta_weight < -2 * tolerance
 
     def lock_previous_weight(self):
         self.weight_is_locked = True
@@ -96,8 +110,13 @@ class Scale(threading.Thread):
         """
         Finds the USB device
         """
+        print "Connecting scale..."
+        self.connecting_flag = True
+
+        self.device = usb.core.find(idVendor=self.VENDOR_ID, idProduct=self.PRODUCT_ID)
 
         if self.device is None:
+            self.connecting_flag = False
             raise Exception("Could not find scale")
 
         if self.device.is_kernel_driver_active(0):
@@ -105,6 +124,7 @@ class Scale(threading.Thread):
                 self.device.detach_kernel_driver(0)
                 print("Kernel driver detached")
             except usb.core.USBError as e:
+                self.connecting_flag = False
                 raise Exception("Could not detach kernel driver: %s" % str(e))
         else:
             print("no kernel driver attached")
@@ -116,17 +136,32 @@ class Scale(threading.Thread):
 
             try:
                 usb.util.claim_interface(self.device, 0)
+                self.connected = True
                 print("Claimed device")
             except:
+                self.connecting_flag = False
                 raise Exception("Could not claim the device")
 
             # first endpoint
             endpoint = self.device[0][(0,0)][0]
 
         except usb.core.USBError as e:
+            self.connecting_flag = False
             raise Exception("Could not set configuration: %s" % str(e))
 
-    def grab_weight(self):
+        self.connecting_flag = False
+
+    def reconnect_scale(self):
+        print "Reconnect scale"
+        if self.connecting_flag:
+            print "Scale is already connecting"
+        else:
+            try:
+                self.connect_scale()
+            except Exception as e:
+                print("Exception occurred while connecting to scale\n%s" % str(e))
+
+    def read_weight(self):
         """
         Gets a data packet from the USB scale
         :return: array of integers
@@ -148,17 +183,19 @@ class Scale(threading.Thread):
                     data = self.device.read(endpoint.bEndpointAddress, endpoint.wMaxPacketSize)
                 except usb.core.USBError as e:
                     data = None
-                    if e.args == ('Operation timed out',):
-                        attempts -= 1
-                        print("timed out... trying again")
-                        continue
+                    attempts -= 1
+                    print("USBError occurred while reading from scale for attempt: %s\n%s" % ((10 - attempts), str(e)))
+
+            if data is None:
+                print("Setting device to None")
+                self.device = None
 
             return data
 
         except usb.core.USBError as e:
-            print("USBError: " + str(e.args))
+            print("USBError occurred while reading from scale\n%s" % str(e))
         except IndexError as e:
-            print("IndexError: " + str(e.args))
+            print("IndexError occurred while reading from scale\n%s" % str(e))
 
     def listen_for_weight(self):
         """
@@ -175,80 +212,41 @@ class Scale(threading.Thread):
 
         raw_weight_stable = 0
         raw_weight_previous = 0
-        count = self.READING_COUNT
+        weight_readings = []
 
         while not self.stopped():
-            data = self.grab_weight()
+            if self.connected:
+                data = self.read_weight()
 
-            if data is not None:
-                self.data_mode = data[2]
-                raw_weight_current = data[4] + data[5] * 256
+                if data is not None:
+                    self.data_mode = data[2]
+                    raw_weight_current = data[4] + data[5] * 256
 
-                if abs(raw_weight_current - raw_weight_previous) < self.get_raw_tolerance():
-                    count -= 1
-                    if count <= 0:
-                        raw_weight_stable = raw_weight_current  # TODO: maybe use previous weight or average over readings
-                        count = self.READING_COUNT
-                else:
-                    raw_weight_previous = raw_weight_current
-                    count = self.READING_COUNT
+                    # print("raw_weight_current: %s, raw_weight_previous: %s, raw_tolerance: %s" %
+                    #       (raw_weight_current, raw_weight_previous, self.get_raw_tolerance()))
+
+                    if abs(raw_weight_current - raw_weight_previous) < self.get_raw_tolerance():
+                        weight_readings.append(raw_weight_current)
+                        if len(weight_readings) >= self.READING_COUNT:
+                            print("## Setting stable raw weight to: %s" % raw_weight_stable)
+                            raw_weight_stable = numpy.median(weight_readings)
+                            weight_readings = []
+                    else:
+                        raw_weight_previous = raw_weight_current
+                        weight_readings = []
+
+                elif self.device is None:
+                    self.reconnect_scale()
+
+            else:
+                self.reconnect_scale()
 
             if self.weight_is_locked:
-                print("Locked, stable raw weight: %s" % raw_weight_stable)
+                print("Locked, stable raw weight: %s, locked raw weight: %s" %
+                      (raw_weight_stable, self.weight_lock))
                 self.weight_current = raw_weight_stable
             else:
                 print("Not locked, stable raw weight: %s" % raw_weight_stable)
                 self.weight_lock = raw_weight_stable
 
             time.sleep(self.READING_PERIOD_SECONDS)
-
-
-        ################################################################################################################
-        # # TODO: REMOVE
-        #
-        # last_raw_weight = 0
-        # last_raw_weight_stable = 4
-        #
-        # while not self.__stop:
-        #     time.sleep(.5)
-        #
-        #     weight = 0
-        #     print_weight = ""
-        #
-        #     data = self.grab_weight()
-        #
-        #     if data is not None:
-        #         self.data_mode = data[2]
-        #
-        #         raw_weight = data[4] + data[5] * 256
-        #
-        #         print data
-        #         if data[1] == self.STATUS_STABLE:
-        #             print("STABLE")
-        #         elif data[1] == self.STATUS_INCREASING:
-        #             print("INCREASING")
-        #         elif data[1] == self.STATUS_DECREASING:
-        #             print("DECREASING")
-        #         else:
-        #             print("UNKNOWN")
-        #
-        #         # +/- 2g
-        #         if raw_weight != 0 and abs(raw_weight - last_raw_weight) > 0 and raw_weight != last_raw_weight:
-        #             last_raw_weight_stable = 4
-        #             last_raw_weight = raw_weight
-        #
-        #         if raw_weight != 0 and last_raw_weight_stable >= 0:
-        #             last_raw_weight_stable -= 1
-        #
-        #         if raw_weight != 0 and last_raw_weight_stable == 0:
-        #             if data[2] == self.DATA_MODE_OUNCES:
-        #                 ounces = raw_weight * 0.1
-        #                 weight = math.ceil(ounces)
-        #                 print_weight = "%s oz" % ounces
-        #             elif data[2] == self.DATA_MODE_GRAMS:
-        #                 grams = raw_weight
-        #                 weight = math.ceil(grams)
-        #                 print_weight = "%s g" % grams
-        #
-        #             print("stable weight: " + print_weight)
-        ################################################################################################################
