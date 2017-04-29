@@ -81,24 +81,27 @@ class Capture(threading.Thread):
         time.sleep(2)
         while not self.stopped():
             while self.idleflag is True:
-                GPIO.output(self.TRIG, True)
-                time.sleep(0.00001)
-                GPIO.output(self.TRIG, False)
+                try:
+                    GPIO.output(self.TRIG, True)
+                    time.sleep(0.00001)
+                    GPIO.output(self.TRIG, False)
 
-                while GPIO.input(self.ECHO) == 0:
-                    pulse_start = time.time()
+                    while GPIO.input(self.ECHO) == 0:
+                        pulse_start = time.time()
 
-                while GPIO.input(self.ECHO) == 1:
-                    pulse_end = time.time()
+                    while GPIO.input(self.ECHO) == 1:
+                        pulse_end = time.time()
 
-                pulse_duration = pulse_end - pulse_start
-                distance = pulse_duration * 17150
-                distance = round(distance, 2)
-                print "Distance:", distance, "cm"
+                    pulse_duration = pulse_end - pulse_start
+                    distance = pulse_duration * 17150
+                    distance = round(distance, 2)
+                    print "Distance:", distance, "cm"
 
-                if distance <= 10:
-                    self.idleflag = False
-                    self.recordflag = True
+                    if distance <= 10:
+                        self.idleflag = False
+                        self.recordflag = True
+                except:
+                    print "Exception occurred while recording distance"
             print "movement detected"
             self.scale.lock_previous_weight()
             print("Locking weight at: %s" % self.scale.weight_lock)
