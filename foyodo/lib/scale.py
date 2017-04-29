@@ -61,6 +61,7 @@ class Scale(threading.Thread):
     CONVERSION_RAW_WEIGHT_TO_OUNCES = 10
     CONVERSION_RAW_WEIGHT_TO_GRAMS = 1
 
+    connected = False
     weight_is_locked = False
     weight_lock = 0
     weight_current = 0
@@ -127,6 +128,7 @@ class Scale(threading.Thread):
 
             try:
                 usb.util.claim_interface(self.device, 0)
+                self.connected = True
                 print("Claimed device")
             except:
                 raise Exception("Could not claim the device")
@@ -198,7 +200,7 @@ class Scale(threading.Thread):
                 if abs(raw_weight_current - raw_weight_previous) < self.get_raw_tolerance():
                     count -= 1
                     if count <= 0:
-                        raw_weight_stable = raw_weight_current  # TODO: maybe use previous weight or average over readings
+                        raw_weight_stable = raw_weight_current  # TODO: use median weight or average weight of 4 weights
                         count = self.READING_COUNT
                 else:
                     raw_weight_previous = raw_weight_current

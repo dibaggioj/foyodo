@@ -73,11 +73,16 @@ class Capture(threading.Thread):
                                            body=unicode(message_body))
 
     def run(self):
-        print("## starting scale...")
+        print "## Running capture thread..."
+        print "## Starting scale..."
         self.scale.start()
-        print("## Running capture thread...")
+        if not self.scale.connected:
+            print "Scale not connected."
+            self.stop()
+            return
+
         GPIO.output(self.TRIG, False)
-        print "Waiting For Sensor To Settle"
+        print "Waiting For UltraSonic Sensor To Settle"
         time.sleep(2)
         while not self.stopped():
             while self.idleflag is True:
