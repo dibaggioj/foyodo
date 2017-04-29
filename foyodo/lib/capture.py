@@ -111,23 +111,26 @@ class Capture(threading.Thread):
                 self.camera.start_recording('../video/'+vid_name+'.h264')
                 time.sleep(10)
                 while True:
-                    GPIO.output(self.TRIG, True)
-                    time.sleep(0.00001)
-                    GPIO.output(self.TRIG, False)
+                    try:
+                        GPIO.output(self.TRIG, True)
+                        time.sleep(0.00001)
+                        GPIO.output(self.TRIG, False)
 
-                    while GPIO.input(self.ECHO) == 0:
-                        pulse_start = time.time()
+                        while GPIO.input(self.ECHO) == 0:
+                            pulse_start = time.time()
 
-                    while GPIO.input(self.ECHO) == 1:
-                        pulse_end = time.time()
+                        while GPIO.input(self.ECHO) == 1:
+                            pulse_end = time.time()
 
-                    pulse_duration = pulse_end - pulse_start
-                    distance = pulse_duration * 17150
-                    distance = round(distance, 2)
-                    print "Recording, distance away: ", distance, "cm"
+                        pulse_duration = pulse_end - pulse_start
+                        distance = pulse_duration * 17150
+                        distance = round(distance, 2)
+                        print "Recording, distance away: ", distance, "cm"
 
-                    if distance >= 30:
-                        break
+                        if distance >= 30:
+                            break
+                    except:
+                        print "Exception occurred while recording distance"
 
                 print "stop recording"
                 self.camera.stop_recording()
