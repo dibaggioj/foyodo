@@ -4,6 +4,8 @@ import time
 import usb.core
 import usb.util
 
+from twilio.rest import Client
+
 """
 Scale class for use in multi-threaded program
 
@@ -46,6 +48,7 @@ class Scale(threading.Thread):
     VENDOR_ID = 0x0922      # DYMO
     PRODUCT_ID = 0x8003     # M10
 
+    READ_ATTEMPTS_MAX = 10
     READING_PERIOD_SECONDS = 0.5
     READING_COUNT = 4
 
@@ -62,22 +65,27 @@ class Scale(threading.Thread):
     CONVERSION_RAW_WEIGHT_TO_OUNCES = 10
     CONVERSION_RAW_WEIGHT_TO_GRAMS = 1
 
+    MESSAGES_SENT_MAX_DEBUG = 3
+
     connected = False
     connecting_flag = False
     weight_is_locked = False
     weight_lock = 0
     weight_current = 0
     data_mode = DATA_MODE_GRAMS
+    messages_sent = 0
 
 
     def __init__(self):
         super(Scale, self).__init__()
         self._stop = threading.Event()
 
+        self.twilio_client = Client(self.CONFIG["twilio"]["account"], self.CONFIG["twilio"]["token"])
+
     def start(self):
         super(Scale, self).start()
         try:
-            self.connect_scale()
+            self.__connect_scale()
         except Exception as e:
             print("Exception occurred while connecting to scale\n%s" % str(e))
 
@@ -89,7 +97,7 @@ class Scale(threading.Thread):
         return self._stop.isSet()
 
     def run(self):
-        self.listen_for_weight()
+        self.__listen_for_weight()
 
     def is_weight_reduced(self):
         delta_weight = self.weight_current - self.weight_lock
@@ -102,11 +110,17 @@ class Scale(threading.Thread):
     def release_previous_weight(self):
         self.weight_is_locked = False
 
-    def get_raw_tolerance(self):
+    def __get_raw_tolerance(self):
         return (self.TOLERANCE_GRAMS * self.CONVERSION_RAW_WEIGHT_TO_GRAMS) if self.data_mode == self.DATA_MODE_GRAMS \
             else (self.TOLERANCE_OUNCES * self.CONVERSION_RAW_WEIGHT_TO_OUNCES)
 
-    def connect_scale(self):
+    def __send_message(self):
+        message_body = "Lost scale connection!"
+        self.twilio_client.messages.create(from_=self.CONFIG["twilio"]["phone"],
+                                           to=self.CONFIG["users"][0]["phone"],
+                                           body=unicode(message_body))
+
+    def __connect_scale(self):
         """
         Finds the USB device
         """
@@ -151,17 +165,17 @@ class Scale(threading.Thread):
 
         self.connecting_flag = False
 
-    def reconnect_scale(self):
+    def __reconnect_scale(self):
         print "Reconnect scale"
         if self.connecting_flag:
             print "Scale is already connecting"
         else:
             try:
-                self.connect_scale()
+                self.__connect_scale()
             except Exception as e:
                 print("Exception occurred while connecting to scale\n%s" % str(e))
 
-    def read_weight(self):
+    def __read_weight(self):
         """
         Gets a data packet from the USB scale
         :return: array of integers
@@ -176,7 +190,7 @@ class Scale(threading.Thread):
             endpoint = self.device[0][(0,0)][0]
 
             # read a data packet
-            attempts = 10
+            attempts = self.READ_ATTEMPTS_MAX
 
             while data is None and attempts > 0:
                 try:
@@ -184,10 +198,13 @@ class Scale(threading.Thread):
                 except usb.core.USBError as e:
                     data = None
                     attempts -= 1
-                    print("USBError occurred while reading from scale for attempt: %s\n%s" % ((10 - attempts), str(e)))
+                    print("USBError occurred while reading from scale for attempt #%s\n%s" % (
+                        (self.READ_ATTEMPTS_MAX - attempts), str(e)))
 
             if data is None:
                 print("Setting device to None")
+                if self.messages_sent < self.MESSAGES_SENT_MAX_DEBUG:  # Don't send too many messages while testing
+                    self.__send_message()
                 self.device = None
 
             return data
@@ -197,7 +214,7 @@ class Scale(threading.Thread):
         except IndexError as e:
             print("IndexError occurred while reading from scale\n%s" % str(e))
 
-    def listen_for_weight(self):
+    def __listen_for_weight(self):
         """
         Reads weight every `READING_PERIOD_SECONDS` seconds.
         If weight fluctuations are within tolerance for `READING_COUNT` readings, then store a new stable weight
@@ -216,7 +233,7 @@ class Scale(threading.Thread):
 
         while not self.stopped():
             if self.connected:
-                data = self.read_weight()
+                data = self.__read_weight()
 
                 if data is not None:
                     self.data_mode = data[2]
@@ -225,7 +242,7 @@ class Scale(threading.Thread):
                     # print("raw_weight_current: %s, raw_weight_previous: %s, raw_tolerance: %s" %
                     #       (raw_weight_current, raw_weight_previous, self.get_raw_tolerance()))
 
-                    if abs(raw_weight_current - raw_weight_previous) < self.get_raw_tolerance():
+                    if abs(raw_weight_current - raw_weight_previous) < self.__get_raw_tolerance():
                         weight_readings.append(raw_weight_current)
                         if len(weight_readings) >= self.READING_COUNT:
                             print("## Setting stable raw weight to: %s" % raw_weight_stable)
@@ -236,10 +253,10 @@ class Scale(threading.Thread):
                         weight_readings = []
 
                 elif self.device is None:
-                    self.reconnect_scale()
+                    self.__reconnect_scale()
 
             else:
-                self.reconnect_scale()
+                self.__reconnect_scale()
 
             if self.weight_is_locked:
                 print("Locked, stable raw weight: %s, locked raw weight: %s" %
