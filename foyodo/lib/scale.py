@@ -1,5 +1,6 @@
 import json
 import numpy
+import os
 import threading
 import time
 import usb.core
