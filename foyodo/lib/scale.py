@@ -191,29 +191,33 @@ class Scale(threading.Thread):
         count = self.READING_COUNT
 
         while not self.stopped():
-            data = self.grab_weight()
+            if self.connected:
+                data = self.grab_weight()
 
-            if data is not None:
-                self.data_mode = data[2]
-                raw_weight_current = data[4] + data[5] * 256
+                if data is not None:
+                    self.data_mode = data[2]
+                    raw_weight_current = data[4] + data[5] * 256
 
-                if abs(raw_weight_current - raw_weight_previous) < self.get_raw_tolerance():
-                    count -= 1
-                    if count <= 0:
-                        raw_weight_stable = raw_weight_current  # TODO: use median weight or average weight of 4 weights
+                    if abs(raw_weight_current - raw_weight_previous) < self.get_raw_tolerance():
+                        count -= 1
+                        if count <= 0:
+                            raw_weight_stable = raw_weight_current  # TODO: use median weight or average weight of 4 weights
+                            count = self.READING_COUNT
+                    else:
+                        raw_weight_previous = raw_weight_current
                         count = self.READING_COUNT
-                else:
-                    raw_weight_previous = raw_weight_current
-                    count = self.READING_COUNT
 
-            if self.weight_is_locked:
-                print("Locked, stable raw weight: %s, locked weight: " % raw_weight_stable, self.weight_lock)
-                self.weight_current = raw_weight_stable
+                if self.weight_is_locked:
+                    print("Locked, stable raw weight: %s, locked weight: " % raw_weight_stable, self.weight_lock)
+                    self.weight_current = raw_weight_stable
+                else:
+                    print("Not locked, stable raw weight: %s" % raw_weight_stable)
+                    self.weight_lock = raw_weight_stable
             else:
-                print("Not locked, stable raw weight: %s" % raw_weight_stable)
-                self.weight_lock = raw_weight_stable
+                print "Scale not connected"
 
             time.sleep(self.READING_PERIOD_SECONDS)
+
 
 
         ################################################################################################################

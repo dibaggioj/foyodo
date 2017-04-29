@@ -76,11 +76,6 @@ class Capture(threading.Thread):
         print "## Running capture thread..."
         print "## Starting scale..."
         self.scale.start()
-        if not self.scale.connected:
-            print "Scale not connected."
-            self.stop()
-            return
-
         GPIO.output(self.TRIG, False)
         print "Waiting For UltraSonic Sensor To Settle"
         time.sleep(2)
