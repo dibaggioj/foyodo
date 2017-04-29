@@ -94,7 +94,7 @@ class Scale(threading.Thread):
     def is_weight_reduced(self):
         delta_weight = self.weight_current - self.weight_lock
         tolerance = self.TOLERANCE_GRAMS if self.data_mode == self.DATA_MODE_GRAMS else self.TOLERANCE_OUNCES
-        return abs(delta_weight) > 2 * tolerance
+        return delta_weight < -2 * tolerance
 
     def lock_previous_weight(self):
         self.weight_is_locked = True
