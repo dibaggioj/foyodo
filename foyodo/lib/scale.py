@@ -1,3 +1,4 @@
+import json
 import numpy
 import threading
 import time
@@ -79,6 +80,9 @@ class Scale(threading.Thread):
     def __init__(self):
         super(Scale, self).__init__()
         self._stop = threading.Event()
+
+        with open(os.getcwd() + "/config.json", 'r') as config_file:
+            self.CONFIG = json.load(config_file)
 
         self.twilio_client = Client(self.CONFIG["twilio"]["account"], self.CONFIG["twilio"]["token"])
 
