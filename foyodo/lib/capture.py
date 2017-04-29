@@ -1,5 +1,6 @@
 import datetime
 import json
+import numpy
 import os
 import picamera
 import RPi.GPIO as GPIO
@@ -32,6 +33,11 @@ class Capture(threading.Thread):
     """
     TRIG = 20
     ECHO = 26
+
+    DISTANCE_CM_CLOSE = 10
+    DISTANCE_CM_FAR = 30
+
+    DISTANCE_READING_COUNT = 5
 
     recordflag = False
     idleflag = True
@@ -83,6 +89,7 @@ class Capture(threading.Thread):
         print "Waiting For UltraSonic Sensor To Settle"
         time.sleep(2)
         while not self.stopped():
+            distance_readings = []
             while self.idleflag is True:
                 try:
                     GPIO.output(self.TRIG, True)
@@ -98,11 +105,16 @@ class Capture(threading.Thread):
                     pulse_duration = pulse_end - pulse_start
                     distance = pulse_duration * 17150
                     distance = round(distance, 2)
-                    print "Distance:", distance, "cm"
 
-                    if distance <= 10:
-                        self.idleflag = False
-                        self.recordflag = True
+                    distance_readings.append(distance)
+
+                    if len(distance_readings) >= self.DISTANCE_READING_COUNT:
+                        distance_stable = numpy.median(distance_readings)
+                        distance_readings = []
+                        print("Stable distance: %s cm" % distance_stable)
+                        if distance_stable <= self.DISTANCE_CM_CLOSE:
+                            self.idleflag = False
+                            self.recordflag = True
                 except:
                     print "Exception occurred while recording distance"
             print "movement detected"
@@ -131,10 +143,16 @@ class Capture(threading.Thread):
                         pulse_duration = pulse_end - pulse_start
                         distance = pulse_duration * 17150
                         distance = round(distance, 2)
-                        print "Recording, distance away: ", distance, "cm"
 
-                        if distance >= 30:
-                            break
+                        distance_readings.append(distance)
+
+                        if len(distance_readings) >= self.DISTANCE_READING_COUNT:
+                            distance_stable = numpy.median(distance_readings)
+                            distance_readings = []
+                            print("Recording, stable distance away: %s cm" % distance_stable)
+                            if distance_stable >= self.DISTANCE_CM_FAR:
+                                break
+
                     except:
                         print "Exception occurred while recording distance"
 
