@@ -68,7 +68,7 @@ class Scale(threading.Thread):
     weight_lock = 0
     weight_current = 0
     data_mode = DATA_MODE_GRAMS
-    device = usb.core.find(idVendor=VENDOR_ID, idProduct=PRODUCT_ID)
+
 
     def __init__(self):
         super(Scale, self).__init__()
@@ -79,7 +79,7 @@ class Scale(threading.Thread):
         try:
             self.connect_scale()
         except Exception as e:
-            print("An exception occurred while connecting to scale\n%s" % str(e))
+            print("Exception occurred while connecting to scale\n%s" % str(e))
 
     def stop(self):
         print("Stopping scale thread...")
@@ -112,6 +112,8 @@ class Scale(threading.Thread):
         """
         print "Connecting scale..."
         self.connecting_flag = True
+
+        self.device = usb.core.find(idVendor=self.VENDOR_ID, idProduct=self.PRODUCT_ID)
 
         if self.device is None:
             self.connecting_flag = False
@@ -149,7 +151,17 @@ class Scale(threading.Thread):
 
         self.connecting_flag = False
 
-    def grab_weight(self):
+    def reconnect_scale(self):
+        print "Reconnect scale"
+        if self.connecting_flag:
+            print "Scale is already connecting"
+        else:
+            try:
+                self.connect_scale()
+            except Exception as e:
+                print("Exception occurred while connecting to scale\n%s" % str(e))
+
+    def read_weight(self):
         """
         Gets a data packet from the USB scale
         :return: array of integers
@@ -171,17 +183,19 @@ class Scale(threading.Thread):
                     data = self.device.read(endpoint.bEndpointAddress, endpoint.wMaxPacketSize)
                 except usb.core.USBError as e:
                     data = None
-                    if e.args == ('Operation timed out',):
-                        attempts -= 1
-                        print("timed out... trying again")
-                        continue
+                    attempts -= 1
+                    print("USBError occurred while reading from scale for attempt: %s\n%s" % ((10 - attempts), str(e)))
+
+            if data is None:
+                print("Setting device to None")
+                self.device = None
 
             return data
 
         except usb.core.USBError as e:
-            print("USBError: " + str(e.args))
+            print("USBError occurred while reading from scale\n%s" % str(e))
         except IndexError as e:
-            print("IndexError: " + str(e.args))
+            print("IndexError occurred while reading from scale\n%s" % str(e))
 
     def listen_for_weight(self):
         """
@@ -202,7 +216,7 @@ class Scale(threading.Thread):
 
         while not self.stopped():
             if self.connected:
-                data = self.grab_weight()
+                data = self.read_weight()
 
                 if data is not None:
                     self.data_mode = data[2]
@@ -214,81 +228,25 @@ class Scale(threading.Thread):
                     if abs(raw_weight_current - raw_weight_previous) < self.get_raw_tolerance():
                         weight_readings.append(raw_weight_current)
                         if len(weight_readings) >= self.READING_COUNT:
-                            # print("Setting stable raw weight to: %s", raw_weight_stable)
+                            print("## Setting stable raw weight to: %s" % raw_weight_stable)
                             raw_weight_stable = numpy.median(weight_readings)
                             weight_readings = []
                     else:
                         raw_weight_previous = raw_weight_current
                         weight_readings = []
 
-                if self.weight_is_locked:
-                    print("Locked, stable raw weight: %s, locked raw weight: %s" %
-                          (raw_weight_stable, self.weight_lock))
-                    self.weight_current = raw_weight_stable
-                else:
-                    print("Not locked, stable raw weight: %s" % raw_weight_stable)
-                    self.weight_lock = raw_weight_stable
-            else:
-                print "Scale is not connected"
-                if self.connecting_flag:
-                    print "Scale is already connecting"
-                else:
-                    try:
-                        self.connect_scale()
-                    except Exception as e:
-                        print("An exception occurred while connecting to scale\n%s" % str(e))
+                elif self.device is None:
+                    self.reconnect_scale()
 
+            else:
+                self.reconnect_scale()
+
+            if self.weight_is_locked:
+                print("Locked, stable raw weight: %s, locked raw weight: %s" %
+                      (raw_weight_stable, self.weight_lock))
+                self.weight_current = raw_weight_stable
+            else:
+                print("Not locked, stable raw weight: %s" % raw_weight_stable)
+                self.weight_lock = raw_weight_stable
 
             time.sleep(self.READING_PERIOD_SECONDS)
-
-
-
-        ################################################################################################################
-        # # TODO: REMOVE
-        #
-        # last_raw_weight = 0
-        # last_raw_weight_stable = 4
-        #
-        # while not self.__stop:
-        #     time.sleep(.5)
-        #
-        #     weight = 0
-        #     print_weight = ""
-        #
-        #     data = self.grab_weight()
-        #
-        #     if data is not None:
-        #         self.data_mode = data[2]
-        #
-        #         raw_weight = data[4] + data[5] * 256
-        #
-        #         print data
-        #         if data[1] == self.STATUS_STABLE:
-        #             print("STABLE")
-        #         elif data[1] == self.STATUS_INCREASING:
-        #             print("INCREASING")
-        #         elif data[1] == self.STATUS_DECREASING:
-        #             print("DECREASING")
-        #         else:
-        #             print("UNKNOWN")
-        #
-        #         # +/- 2g
-        #         if raw_weight != 0 and abs(raw_weight - last_raw_weight) > 0 and raw_weight != last_raw_weight:
-        #             last_raw_weight_stable = 4
-        #             last_raw_weight = raw_weight
-        #
-        #         if raw_weight != 0 and last_raw_weight_stable >= 0:
-        #             last_raw_weight_stable -= 1
-        #
-        #         if raw_weight != 0 and last_raw_weight_stable == 0:
-        #             if data[2] == self.DATA_MODE_OUNCES:
-        #                 ounces = raw_weight * 0.1
-        #                 weight = math.ceil(ounces)
-        #                 print_weight = "%s oz" % ounces
-        #             elif data[2] == self.DATA_MODE_GRAMS:
-        #                 grams = raw_weight
-        #                 weight = math.ceil(grams)
-        #                 print_weight = "%s g" % grams
-        #
-        #             print("stable weight: " + print_weight)
-        ################################################################################################################
