@@ -113,8 +113,8 @@ class Capture(threading.Thread):
                 print "Start Recording"
                 ts = time.time()
                 vid_name = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H:%M:%S')
-                self.camera.capture('../picture/'+vid_name+'.jpg')
-                self.camera.start_recording('../video/'+vid_name+'.h264')
+                self.camera.capture(os.getcwd() + '/picture/'+vid_name+'.jpg')
+                self.camera.start_recording(os.getcwd() + '/video/'+vid_name+'.h264')
                 time.sleep(10)
                 while True:
                     try:
