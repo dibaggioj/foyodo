@@ -51,8 +51,6 @@ class Capture(threading.Thread):
 
         with open(os.getcwd() + "/config.json", 'r') as config_file:
             self.CONFIG = json.load(config_file)
-        with open(os.getcwd() + "/youtube.json", 'r') as youtube_file:
-            self.YOUTUBE = json.load(youtube_file)
 
         GPIO.setmode(GPIO.BCM)
         GPIO.setup(self.TRIG, GPIO.OUT)
@@ -74,7 +72,7 @@ class Capture(threading.Thread):
     def send_message(self):
         message_body = "Potential theft: https://www.youtube.com/embed/videoseries?list={1}".format(
             self.CONFIG["users"][0]["first_name"],
-            self.YOUTUBE["installed"]["playlist_id"])
+            self.CONFIG["youtube"]["playlist_id"])
 
         self.twilio_client.messages.create(from_=self.CONFIG["twilio"]["phone"],
                                            to=self.CONFIG["users"][0]["phone"],
@@ -166,9 +164,9 @@ class Capture(threading.Thread):
             if self.scale.is_weight_reduced():
                 rc = subprocess.call(["youtube-upload",
                                       "--title="+vid_name,
-                                      "--description='possible theft'",
-                                      "--playlist='"+self.YOUTUBE["installed"]["playlist_name"]+"'",
-                                      "--client-secret="+os.getcwd()+"/youtube.json",
+                                      "--description='Possible package theft'",
+                                      "--playlist='"+self.CONFIG["youtube"]["playlist_name"]+"'",
+                                      "--client-secret="+os.getcwd()+"/youtube_client.json",
                                       os.getcwd() + "/video/"+vid_name+".h264"])
 
                 self.send_message()
