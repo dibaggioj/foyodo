@@ -38,7 +38,7 @@ This is the FoYoDo embedded project for Raspberry Pi
 }
 ```
 
-## /foyodo/youtube.json, /foyodo/lib/youtube-upload-master/client_secrets.json schema
+## /foyodo/youtube_client.json, /foyodo/lib/youtube-upload-master/client_secrets.json schema
 
 ```
 {
