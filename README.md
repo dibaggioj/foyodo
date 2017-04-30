@@ -1,15 +1,18 @@
 # FoYoDo
 
 ## Authors
-Nanu Ahluwalia
-John DiBaggio
-Kyle Etsler
+Nanu Ahluwalia  
+John DiBaggio  
+Kyle Etsler  
+
+## Description
+This is the FoYoDo embedded project for Raspberry Pi
 
 ## Hardware
-- Raspberry Pi B+ (or newer)
-- Raspberry Camera
-- Dymo M10 USB scale
-- HC-SR04 Ultrasonic Sensor
+- Raspberry Pi B+ (or newer)  
+- Raspberry Camera  
+- Dymo M10 USB scale  
+- HC-SR04 Ultrasonic Sensor  
 
 ## /foyodo/config.json schema
 
@@ -19,6 +22,10 @@ Kyle Etsler
     "account": {String},
     "token": {String},
     "phone": {String}
+  },
+  "youtube": {
+    "playlist_id": {String},
+    "playlist_name": {String}
   },
   "users": [
     {
@@ -31,7 +38,7 @@ Kyle Etsler
 }
 ```
 
-## /foyodo/youtube.json schema
+## /foyodo/youtube.json, /foyodo/lib/youtube-upload-master/client_secrets.json schema
 
 ```
 {
@@ -40,8 +47,6 @@ Kyle Etsler
         "auth_uri": {String},
         "client_id": {String},
         "client_secret": {String},
-        "playlist_id": {String},
-        "playlist_name": {String},
         "project_id": {String},
         "redirect_uris": [{String}, {String}],
         "token_uri": {String}
