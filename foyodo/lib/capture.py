@@ -70,9 +70,10 @@ class Capture(threading.Thread):
         return self._stop.isSet()
 
     def send_message(self):
-        message_body = "Potential theft: https://www.youtube.com/embed/videoseries?list={1}".format(
-            self.CONFIG["users"][0]["first_name"],
-            self.CONFIG["youtube"]["playlist_id"])
+        message_body = "Potential theft, see https://foyodo.bitbucket.io/ for more info"
+        # message_body = "Potential theft: https://www.youtube.com/embed/videoseries?list={1}".format(
+        #     self.CONFIG["users"][0]["first_name"],
+        #     self.CONFIG["youtube"]["playlist_id"])
 
         self.twilio_client.messages.create(from_=self.CONFIG["twilio"]["phone"],
                                            to=self.CONFIG["users"][0]["phone"],
