@@ -166,7 +166,7 @@ class Capture(threading.Thread):
                 self.scale.release_previous_weight()
                 rc = subprocess.call(["youtube-upload",
                                       "--title="+vid_name,
-                                      "--description='Possible package theft'",
+                                      "--description=Possible package theft",
                                       "--playlist="+self.CONFIG["youtube"]["playlist_name"],
                                       "--client-secret="+os.getcwd()+"/youtube_client.json",
                                       os.getcwd() + "/video/"+vid_name+".h264"])
