@@ -252,9 +252,11 @@ class Scale(threading.Thread):
                     if abs(raw_weight_current - raw_weight_previous) < self.__get_raw_tolerance():
                         weight_readings.append(raw_weight_current)
                         if len(weight_readings) >= self.READING_COUNT:
-                            print("## Setting stable raw weight to: %s" % raw_weight_stable)
                             raw_weight_stable = numpy.median(weight_readings)
                             weight_readings = []
+                            status = "Locked" if self.weight_is_locked else "Not locked"
+                            print("{0}, setting stable raw weight to: {1}, locked raw  weight: {2}" %
+                                      (status, raw_weight_stable, self.weight_lock))
                     else:
                         raw_weight_previous = raw_weight_current
                         weight_readings = []
@@ -266,11 +268,8 @@ class Scale(threading.Thread):
                 self.__reconnect_scale()
 
             if self.weight_is_locked:
-                print("Locked, stable raw weight: %s, locked raw weight: %s" %
-                      (raw_weight_stable, self.weight_lock))
                 self.weight_current = raw_weight_stable
             else:
-                print("Not locked, stable raw weight: %s" % raw_weight_stable)
                 self.weight_lock = raw_weight_stable
 
             time.sleep(self.READING_PERIOD_SECONDS)
