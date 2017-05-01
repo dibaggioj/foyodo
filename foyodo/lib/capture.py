@@ -162,6 +162,8 @@ class Capture(threading.Thread):
             print("Done recording video. Is weight reduced: %s" % self.scale.is_weight_reduced())
 
             if self.scale.is_weight_reduced():
+                print("Current weight is: %s" % self.scale.weight_current)
+                self.scale.release_previous_weight()
                 rc = subprocess.call(["youtube-upload",
                                       "--title="+vid_name,
                                       "--description='Possible package theft'",
@@ -170,10 +172,9 @@ class Capture(threading.Thread):
                                       os.getcwd() + "/video/"+vid_name+".h264"])
 
                 self.send_message()
-
-            print("Current weight is: %s" % self.scale.weight_current)
-            print "Releasing weight"
-            self.scale.release_previous_weight()
+            else:
+                print("Current weight is: %s" % self.scale.weight_current)
+                self.scale.release_previous_weight()
 
             self.idleflag = True
 

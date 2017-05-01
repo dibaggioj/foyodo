@@ -110,9 +110,11 @@ class Scale(threading.Thread):
         return delta_weight < -2 * tolerance
 
     def lock_previous_weight(self):
+        print "Locking weight..."
         self.weight_is_locked = True
 
     def release_previous_weight(self):
+        print "Releasing weight..."
         self.weight_is_locked = False
 
     def __get_raw_tolerance(self):
