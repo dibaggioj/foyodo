@@ -18,3 +18,5 @@ read -p "Install project Python requirements?`echo $'\n[Y/n]?'``echo $'\n> '`" a
 if [[ $answer = Y ]] || [[ $answer = y ]] ; then
     sudo pip install -r ../requirements.txt
 fi
+
+sudo chmod 777 ../bin/foyodo
