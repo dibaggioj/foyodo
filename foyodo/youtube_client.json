@@ -1,11 +1,11 @@
 {
-    "installed": {
-        "client_id": "324245724390-ato77enfratleff9hscql0dtmi25bqkf.apps.googleusercontent.com",
-        "project_id": "foyodo-16004",
-        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-        "token_uri": "https://accounts.google.com/o/oauth2/token",
-        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-        "client_secret": "yDZtRJoN3M82vZcr5MwsOysQ",
-        "redirect_uris": ["urn:ietf:wg:oauth:2.0:oob", "http://localhost"]
-    }
+	"installed": {
+		"client_id": "51598221143-v0q3jnm7hbkjta4tim8eq1rmpqhbs4uj.apps.googleusercontent.com",
+		"project_id": "foyodo-166121",
+		"auth_uri": "https://accounts.google.com/o/oauth2/auth",
+		"token_uri": "https://accounts.google.com/o/oauth2/token",
+		"auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+		"client_secret": "S8nYvB6K-GObGW1yluK7p-tI",
+		"redirect_uris": ["urn:ietf:wg:oauth:2.0:oob", "http://localhost"]
+	}
 }

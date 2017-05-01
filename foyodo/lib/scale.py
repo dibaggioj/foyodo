@@ -255,7 +255,7 @@ class Scale(threading.Thread):
                             raw_weight_stable = numpy.median(weight_readings)
                             weight_readings = []
                             status = "Locked" if self.weight_is_locked else "Not locked"
-                            print("%s, setting stable raw weight to: %s, locked raw  weight: %s" %
+                            print("%s, setting stable raw weight to: %s, locked raw weight: %s" %
                                       (status, raw_weight_stable, self.weight_lock))
                     else:
                         raw_weight_previous = raw_weight_current
