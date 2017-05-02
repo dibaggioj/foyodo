@@ -2,7 +2,7 @@ import datetime
 import json
 import numpy
 import os
-import picamera
+import picamera.PiCamera as PiCamera
 import RPi.GPIO as GPIO
 import subprocess
 import threading
@@ -41,9 +41,8 @@ class Capture(threading.Thread):
 
     recordflag = False
     idleflag = True
-    camera = picamera.PiCamera()
-    scale = Scale()
-
+    camera = PiCamera()
+    scale = Scale(camera)
 
     def __init__(self):
         super(Capture, self).__init__()

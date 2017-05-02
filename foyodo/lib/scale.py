@@ -1,6 +1,8 @@
+import datetime
 import json
 import numpy
 import os
+import picamera.PiCameraRuntimeError as PiCameraRuntimeError
 import threading
 import time
 import usb.core
@@ -77,10 +79,10 @@ class Scale(threading.Thread):
     data_mode = DATA_MODE_GRAMS
     messages_sent = 0
 
-
-    def __init__(self):
+    def __init__(self, camera):
         super(Scale, self).__init__()
         self._stop = threading.Event()
+        self.camera = camera
 
         with open(os.getcwd() + "/foyodo/config.json", 'r') as config_file:
             self.CONFIG = json.load(config_file)
@@ -126,6 +128,16 @@ class Scale(threading.Thread):
         self.twilio_client.messages.create(from_=self.CONFIG["twilio"]["phone"],
                                            to=self.CONFIG["users"][0]["phone"],
                                            body=unicode(message_body))
+
+    def __is_camera_recording(self):
+        if self.camera is None:
+            return True  # don't try to take a picture if the camera is null
+        try:
+            self.camera._check_recording_stopped()
+            return False
+        except PiCameraRuntimeError as e:
+            print("Camera is currently recording: %s" % str(e))
+            return True
 
     def __connect_scale(self):
         """
@@ -266,6 +278,12 @@ class Scale(threading.Thread):
 
             else:
                 self.__reconnect_scale()
+
+            if raw_weight_stable < self.weight_current and not self.__is_camera_recording():
+                ts = time.time()
+                vid_name = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H:%M:%S')
+                print("Taking a picture because current stable weight is less than the previous stable weight")
+                self.camera.capture(os.getcwd() + '/picture/'+vid_name+'.jpg')
 
             if self.weight_is_locked:
                 self.weight_current = raw_weight_stable
