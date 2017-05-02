@@ -253,10 +253,10 @@ class Scale(threading.Thread):
                 print("Taking a picture because current stable weight is less than the previous stable weight")
                 self.camera.capture(os.getcwd() + '/picture/'+vid_name+'.jpg')
 
-            if self.weight_is_locked:
-                self.weight_current = raw_weight_stable
-            else:
-                self.weight_current = raw_weight_stable
+            self.weight_current = raw_weight_stable
+
+            if not self.weight_is_locked:
+                # Update the locked weight to be used the next time the scale is locked
                 self.weight_lock = raw_weight_stable
 
             time.sleep(self.READING_PERIOD_SECONDS)
