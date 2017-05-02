@@ -112,7 +112,7 @@ class Scale(threading.Thread):
         if self.camera is None:
             return True  # don't try to take a picture if the camera is null
         try:
-            self.camera._check_recording_stopped()
+            self.camera.check_recording_stopped()
             return False
         except PiCameraRuntimeError as e:
             print("Camera is currently recording: %s" % str(e))
