@@ -2,12 +2,12 @@ import datetime
 import json
 import numpy
 import os
-import picamera
 import RPi.GPIO as GPIO
 import subprocess
 import threading
 import time
 
+from fyd_camera import FydCamera
 from scale import Scale
 from twilio.rest import Client
 
@@ -41,9 +41,8 @@ class Capture(threading.Thread):
 
     recordflag = False
     idleflag = True
-    camera = picamera.PiCamera()
-    scale = Scale()
-
+    camera = FydCamera()
+    scale = Scale(camera)
 
     def __init__(self):
         super(Capture, self).__init__()

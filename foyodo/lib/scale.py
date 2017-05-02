@@ -1,3 +1,4 @@
+import datetime
 import json
 import numpy
 import os
@@ -31,7 +32,6 @@ the raw value is in tenths, due to a scaling factor of 10^-1 or 0.1. For a value
 Elements 5 and 6 are used to calculate the weight. An increase in the value of element 6 is a larger increase (by a
 factor of 256) than an increase in element 5
 """
-
 
 class Scale(threading.Thread):
     """
@@ -77,10 +77,14 @@ class Scale(threading.Thread):
     data_mode = DATA_MODE_GRAMS
     messages_sent = 0
 
-
-    def __init__(self):
+    def __init__(self, camera):
+        """
+        :param camera: FyCamera
+        :return:
+        """
         super(Scale, self).__init__()
         self._stop = threading.Event()
+        self.camera = camera
 
         with open(os.getcwd() + "/foyodo/config.json", 'r') as config_file:
             self.CONFIG = json.load(config_file)
@@ -267,9 +271,16 @@ class Scale(threading.Thread):
             else:
                 self.__reconnect_scale()
 
-            if self.weight_is_locked:
-                self.weight_current = raw_weight_stable
-            else:
+            if raw_weight_stable < self.weight_current and not self.camera.is_camera_recording():
+                ts = time.time()
+                vid_name = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H:%M:%S')
+                print("Taking a picture because current stable weight is less than the previous stable weight")
+                self.camera.capture(os.getcwd() + '/picture/'+vid_name+'.jpg')
+
+            self.weight_current = raw_weight_stable
+
+            if not self.weight_is_locked:
+                # Update the locked weight to be used the next time the scale is locked
                 self.weight_lock = raw_weight_stable
 
             time.sleep(self.READING_PERIOD_SECONDS)
