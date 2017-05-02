@@ -2,7 +2,6 @@ import datetime
 import json
 import numpy
 import os
-import picamera.PiCameraRuntimeError as PiCameraRuntimeError
 import threading
 import time
 import usb.core
