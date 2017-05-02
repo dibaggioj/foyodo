@@ -9,6 +9,30 @@ import usb.util
 
 from twilio.rest import Client
 
+"""
+Scale class for use in multi-threaded program
+
+Includes code modified from:
+https://github.com/walac/pyusb/issues/76
+https://gist.github.com/jacksenechal/5862530
+https://github.com/yanigisawa/coffee-scale/blob/master/usbscale.py
+
+Dymo M10 data packet (see http://steventsnyder.com/reading-a-dymo-usb-scale-using-python):
+Element 1 always seems to have value 3
+Element 2 indicates whether the value is stable, as follows:
+    2: zero or stable weight
+    4: increasing weight (not stable)
+    5: decreasing weight (not stable)
+Element 3 indicates units, as follows:
+    2: grams
+    11: ounces
+Element 4 for calculating the scaling factor when reading in ounces. 255 is the signed value -1, which indicates that
+the raw value is in tenths, due to a scaling factor of 10^-1 or 0.1. For a value of 254, the scaling factor is 10^-2, or
+0.01.
+Elements 5 and 6 are used to calculate the weight. An increase in the value of element 6 is a larger increase (by a
+factor of 256) than an increase in element 5
+"""
+
 class Scale(threading.Thread):
     """
     Scale thread
@@ -260,28 +284,3 @@ class Scale(threading.Thread):
                 self.weight_lock = raw_weight_stable
 
             time.sleep(self.READING_PERIOD_SECONDS)
-
-
-"""
-Scale class for use in multi-threaded program
-
-Includes code modified from:
-https://github.com/walac/pyusb/issues/76
-https://gist.github.com/jacksenechal/5862530
-https://github.com/yanigisawa/coffee-scale/blob/master/usbscale.py
-
-Dymo M10 data packet (see http://steventsnyder.com/reading-a-dymo-usb-scale-using-python):
-Element 1 always seems to have value 3
-Element 2 indicates whether the value is stable, as follows:
-    2: zero or stable weight
-    4: increasing weight (not stable)
-    5: decreasing weight (not stable)
-Element 3 indicates units, as follows:
-    2: grams
-    11: ounces
-Element 4 for calculating the scaling factor when reading in ounces. 255 is the signed value -1, which indicates that
-the raw value is in tenths, due to a scaling factor of 10^-1 or 0.1. For a value of 254, the scaling factor is 10^-2, or
-0.01.
-Elements 5 and 6 are used to calculate the weight. An increase in the value of element 6 is a larger increase (by a
-factor of 256) than an increase in element 5
-"""
