@@ -107,16 +107,6 @@ class Scale(threading.Thread):
                                            to=self.CONFIG["users"][0]["phone"],
                                            body=unicode(message_body))
 
-    def __is_camera_recording(self):
-        if self.camera is None:
-            return True  # don't try to take a picture if the camera is null
-        try:
-            self.camera.check_recording_stopped()
-            return False
-        except PiCameraRuntimeError as e:
-            print("Camera is currently recording: %s" % str(e))
-            return True
-
     def __connect_scale(self):
         """
         Finds the USB device
@@ -257,7 +247,7 @@ class Scale(threading.Thread):
             else:
                 self.__reconnect_scale()
 
-            if raw_weight_stable < self.weight_current and not self.__is_camera_recording():
+            if raw_weight_stable < self.weight_current and not self.camera.is_camera_recording():
                 ts = time.time()
                 vid_name = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H:%M:%S')
                 print("Taking a picture because current stable weight is less than the previous stable weight")
