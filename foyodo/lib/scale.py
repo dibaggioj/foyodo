@@ -256,6 +256,7 @@ class Scale(threading.Thread):
             if self.weight_is_locked:
                 self.weight_current = raw_weight_stable
             else:
+                self.weight_current = raw_weight_stable
                 self.weight_lock = raw_weight_stable
 
             time.sleep(self.READING_PERIOD_SECONDS)
