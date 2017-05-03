@@ -111,6 +111,9 @@ class Capture(threading.Thread):
 
                 time.sleep(0.1);
 
+            self.scale.lock_previous_weight()
+            print("Locking weight at: %s" % self.scale.weight_lock)
+
             while self.recordflag is True:
                 print "Start Recording"
                 ts = time.time()
