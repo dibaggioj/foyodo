@@ -15,6 +15,7 @@ take_low_time = False
 def __init_pir_sensor():
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(PIN_INPUT_PIR, GPIO.IN)
+    print(time.time())
 
     # GPIO.output(PIN_INPUT_PIR, GPIO.HIGH)
     # give the sensor some time to calibrate
@@ -38,7 +39,7 @@ def __run():
 
     while True:
         if GPIO.input(PIN_INPUT_PIR) == GPIO.HIGH:
-            # print("HIGH")
+            print("HIGH")
 
             if lock_low:
                 print("Lock is low")
@@ -50,7 +51,7 @@ def __run():
             take_low_time = True
 
         if GPIO.input(PIN_INPUT_PIR) == GPIO.LOW:
-            # print("LOW")
+            print("LOW")
             if take_low_time:
                 low_in = time.time()    ## save the time of the transition from high to LOW
                 take_low_time = False   ## make sure this is only done at the start of a LOW phase
