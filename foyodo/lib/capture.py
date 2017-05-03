@@ -25,7 +25,7 @@ class Capture(threading.Thread):
     capture.stop()
 
     Instantiates a scale thread instance.
-    Uses ultrasonic motion sensing.
+    Uses passive infrared (PIR) motion sensing
     Takes a picture and records video when motion is detected. Stops recording video after motion is no longer detected.
     Uploads the video to YouTube if the weight has been reduced on the scale since it was locked in after motion was
     sensed. Releases the locked weight after motion is no longer sensed.
