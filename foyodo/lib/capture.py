@@ -105,7 +105,7 @@ class Capture(threading.Thread):
 
                     self.take_low_time = True
 
-                time.sleep(0.1);
+                time.sleep(0.1)
 
             self.scale.lock_previous_weight()
             print("Locking weight at: %s" % self.scale.weight_lock)
@@ -132,7 +132,7 @@ class Capture(threading.Thread):
                             print("Motion ended at %s millisec" % (time.time() - self.TIME_SEC_PAUSE))
                             break
 
-                    time.sleep(0.1);
+                    time.sleep(0.1)
 
                 print "Stop recording"
                 self.camera.stop_recording()
