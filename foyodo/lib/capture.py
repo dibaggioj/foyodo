@@ -99,7 +99,6 @@ class Capture(threading.Thread):
             while self.idleflag is True:
                 if GPIO.input(self.PIN_INPUT_PIR) == GPIO.HIGH:
                     # print("HIGH")
-
                     if self.lock_low:
                         print("Lock is low")
                         self.lock_low = False
@@ -107,9 +106,10 @@ class Capture(threading.Thread):
                         print("Motion detected at %s millisec" % time.time())
                         self.idleflag = False
                         self.recordflag = True
-                        # time.sleep(0.05);
 
                     take_low_time = True
+
+                time.sleep(0.1);
 
             while self.recordflag is True:
                 print "Start Recording"
@@ -133,7 +133,8 @@ class Capture(threading.Thread):
                             self.lock_low = True
                             print("Motion ended at %s millisec" % (time.time() - self.TIME_SEC_PAUSE))
                             break
-                            # time.sleep(0.05);
+
+                    time.sleep(0.1);
 
                 print "Stop recording"
                 self.camera.stop_recording()
