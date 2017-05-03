@@ -1,6 +1,5 @@
 import datetime
 import json
-import numpy
 import os
 import RPi.GPIO as GPIO
 import subprocess
