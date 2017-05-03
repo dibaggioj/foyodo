@@ -5,7 +5,7 @@ import time
 PIN_INPUT_PIR = 18
 
 TIME_SEC_PIR_CALIBRATION = 15   # Time given to PIR sensor to calibrate (10-60 secs according to the data sheet)
-TIME_MS_PAUSE = 5000
+TIME_MS_PAUSE = 5
 
 low_in = 0
 lock_low = True
