@@ -16,7 +16,7 @@ def __init_pir_sensor():
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(PIN_INPUT_PIR, GPIO.IN)
 
-    GPIO.output(PIN_INPUT_PIR, GPIO.HIGH)
+    # GPIO.output(PIN_INPUT_PIR, GPIO.HIGH)
     # give the sensor some time to calibrate
     for i in range(0, TIME_SEC_PIR_CALIBRATION):
         time.sleep(1)
