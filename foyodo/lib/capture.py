@@ -107,7 +107,7 @@ class Capture(threading.Thread):
                         self.idleflag = False
                         self.recordflag = True
 
-                    take_low_time = True
+                    self.take_low_time = True
 
                 time.sleep(0.1);
 
@@ -124,7 +124,7 @@ class Capture(threading.Thread):
                 while True:
                     if GPIO.input(self.PIN_INPUT_PIR) == GPIO.LOW:
                         # print("LOW")
-                        if take_low_time:
+                        if self.take_low_time:
                             self.low_in = time.time()   ## save the time of the transition from high to LOW
                             self.take_low_time = False  ## make sure this is only done at the start of a LOW phase
 
