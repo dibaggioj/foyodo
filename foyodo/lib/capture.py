@@ -98,7 +98,7 @@ class Capture(threading.Thread):
         while not self.stopped():
             while self.idleflag is True:
                 if GPIO.input(self.PIN_INPUT_PIR) == GPIO.HIGH:
-                    print("HIGH")
+                    # print("HIGH")
 
                     if self.lock_low:
                         print("Lock is low")
@@ -120,7 +120,7 @@ class Capture(threading.Thread):
 
                 while True:
                     if GPIO.input(self.PIN_INPUT_PIR) == GPIO.LOW:
-                        print("LOW")
+                        # print("LOW")
                         if take_low_time:
                             self.low_in = time.time()   ## save the time of the transition from high to LOW
                             self.take_low_time = False  ## make sure this is only done at the start of a LOW phase
