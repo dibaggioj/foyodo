@@ -10,9 +10,18 @@ This is the FoYoDo embedded project for Raspberry Pi
 
 ## Hardware
 - Raspberry Pi B+ (or newer)  
-- Raspberry Camera  
+- Raspberry Picamera  
 - Dymo M10 USB scale  
-- HC-SR04 Ultrasonic Sensor  
+- 5V-12V PIR Motion Sensor  
+
+## Included libraries/projects
+- youtube-upload  
+- pyusb  
+- libusb1  
+- twilio  
+- picamera  
+- RPi.GPIO  
+- numpy  
 
 ## /foyodo/config.json schema
 

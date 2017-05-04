@@ -1,6 +1,5 @@
 import datetime
 import json
-import numpy
 import os
 import RPi.GPIO as GPIO
 import subprocess
@@ -26,21 +25,22 @@ class Capture(threading.Thread):
     capture.stop()
 
     Instantiates a scale thread instance.
-    Uses ultrasonic motion sensing.
+    Uses passive infrared (PIR) motion sensing
     Takes a picture and records video when motion is detected. Stops recording video after motion is no longer detected.
     Uploads the video to YouTube if the weight has been reduced on the scale since it was locked in after motion was
     sensed. Releases the locked weight after motion is no longer sensed.
     """
-    TRIG = 20
-    ECHO = 26
 
-    DISTANCE_CM_CLOSE = 10
-    DISTANCE_CM_FAR = 30
+    PIN_INPUT_PIR = 18
 
-    DISTANCE_READING_COUNT = 5
+    TIME_SEC_PIR_CALIBRATION = 5   # Time given to PIR sensor to calibrate (10-60 secs according to the data sheet)
+    TIME_SEC_PAUSE = 10             # Stop recording video if no motion is sensed for 10 seconds
 
     recordflag = False
     idleflag = True
+    low_in = 0
+    lock_low = True
+    take_low_time = False
     camera = FydCamera()
     scale = Scale(camera)
 
@@ -51,10 +51,10 @@ class Capture(threading.Thread):
         with open(os.getcwd() + "/config.json", 'r') as config_file:
             self.CONFIG = json.load(config_file)
 
-        GPIO.setmode(GPIO.BCM)
-        GPIO.setup(self.TRIG, GPIO.OUT)
-        GPIO.setup(self.ECHO, GPIO.IN)
         self.twilio_client = Client(self.CONFIG["twilio"]["account"], self.CONFIG["twilio"]["token"])
+
+        self.__init_pir_sensor()
+
 
     def stop(self):
         self.camera.close()
@@ -67,6 +67,18 @@ class Capture(threading.Thread):
 
     def stopped(self):
         return self._stop.isSet()
+
+    def __init_pir_sensor(self):
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(self.PIN_INPUT_PIR, GPIO.IN)
+        # give the sensor some time to calibrate
+        for i in range(0, self.TIME_SEC_PIR_CALIBRATION):
+            time.sleep(1)
+            print("Calibrating PIR sensor...")
+
+        print("Done calibrating PIR sensor")
+        time.sleep(0.05)
+
 
     def send_message(self):
         message_body = "Potential theft, see https://foyodo.bitbucket.io/ for more info"
@@ -82,39 +94,19 @@ class Capture(threading.Thread):
         print "## Running capture thread..."
         print "## Starting scale..."
         self.scale.start()
-        GPIO.output(self.TRIG, False)
-        print "Waiting For UltraSonic Sensor To Settle"
-        time.sleep(2)
         while not self.stopped():
-            distance_readings = []
             while self.idleflag is True:
-                try:
-                    GPIO.output(self.TRIG, True)
-                    time.sleep(0.00001)
-                    GPIO.output(self.TRIG, False)
+                if GPIO.input(self.PIN_INPUT_PIR) == GPIO.HIGH:
+                    if self.lock_low:
+                        self.lock_low = False
+                        print("Motion detected at %s millisec" % time.time())
+                        self.idleflag = False
+                        self.recordflag = True
 
-                    while GPIO.input(self.ECHO) == 0:
-                        pulse_start = time.time()
+                    self.take_low_time = True
 
-                    while GPIO.input(self.ECHO) == 1:
-                        pulse_end = time.time()
+                time.sleep(0.1)
 
-                    pulse_duration = pulse_end - pulse_start
-                    distance = pulse_duration * 17150
-                    distance = round(distance, 2)
-
-                    distance_readings.append(distance)
-
-                    if len(distance_readings) >= self.DISTANCE_READING_COUNT:
-                        distance_stable = numpy.median(distance_readings)
-                        distance_readings = []
-                        print("Stable distance: %s cm" % distance_stable)
-                        if distance_stable <= self.DISTANCE_CM_CLOSE:
-                            self.idleflag = False
-                            self.recordflag = True
-                except:
-                    print "Exception occurred while recording distance"
-            print "movement detected"
             self.scale.lock_previous_weight()
             print("Locking weight at: %s" % self.scale.weight_lock)
 
@@ -124,40 +116,29 @@ class Capture(threading.Thread):
                 vid_name = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d_%H:%M:%S')
                 self.camera.capture(os.getcwd() + '/picture/'+vid_name+'.jpg')
                 self.camera.start_recording(os.getcwd() + '/video/'+vid_name+'.h264')
-                time.sleep(10)
+
                 while True:
-                    try:
-                        GPIO.output(self.TRIG, True)
-                        time.sleep(0.00001)
-                        GPIO.output(self.TRIG, False)
+                    if GPIO.input(self.PIN_INPUT_PIR) == GPIO.LOW:
+                        if self.take_low_time:
+                            self.low_in = time.time()   ## save the time of the transition from high to LOW
+                            self.take_low_time = False  ## make sure this is only done at the start of a LOW phase
 
-                        while GPIO.input(self.ECHO) == 0:
-                            pulse_start = time.time()
+                        # if the sensor is low for more than the given pause,
+                        # we assume that no more motion is going to happen
+                        if not self.lock_low and (time.time() - self.low_in) > self.TIME_SEC_PAUSE:
+                            # makes sure this block of code is only executed again
+                            # after a new motion sequence has been detected
+                            self.lock_low = True
+                            print("Motion ended at %s millisec" % (time.time() - self.TIME_SEC_PAUSE))
+                            break
 
-                        while GPIO.input(self.ECHO) == 1:
-                            pulse_end = time.time()
+                    time.sleep(0.1)
 
-                        pulse_duration = pulse_end - pulse_start
-                        distance = pulse_duration * 17150
-                        distance = round(distance, 2)
-
-                        distance_readings.append(distance)
-
-                        if len(distance_readings) >= self.DISTANCE_READING_COUNT:
-                            distance_stable = numpy.median(distance_readings)
-                            distance_readings = []
-                            print("Recording, stable distance away: %s cm" % distance_stable)
-                            if distance_stable >= self.DISTANCE_CM_FAR:
-                                break
-
-                    except:
-                        print "Exception occurred while recording distance"
-
-                print "stop recording"
+                print "Stop recording"
                 self.camera.stop_recording()
                 self.recordflag = False
 
-            time.sleep(5)
+            time.sleep(5)   # Wait until video finishes encoding
             print("Current weight is: %s" % self.scale.weight_current)
             print("Done recording video. Is weight reduced: %s" % self.scale.is_weight_reduced())
 
