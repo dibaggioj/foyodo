@@ -33,7 +33,7 @@ class Capture(threading.Thread):
 
     PIN_INPUT_PIR = 18
 
-    TIME_SEC_PIR_CALIBRATION = 10   # Time given to PIR sensor to calibrate (10-60 secs according to the data sheet)
+    TIME_SEC_PIR_CALIBRATION = 5   # Time given to PIR sensor to calibrate (10-60 secs according to the data sheet)
     TIME_SEC_PAUSE = 10             # Stop recording video if no motion is sensed for 10 seconds
 
     recordflag = False
