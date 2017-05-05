@@ -8,13 +8,15 @@ from lib.capture import Capture
 
 
 def main():
-    PIN_INPUT_SWITCH = 11
+    PIN_INPUT_SWITCH =  11
+    PIN_OUTPUT_LED_ON = 23
 
     # Set current directory to directory containing main.py. Can get this directory elsewhere with `os.getcwd()`
     os.chdir(os.path.realpath(__file__+"/.."))
 
     GPIO.setmode(GPIO.BCM)
     GPIO.setup(PIN_INPUT_SWITCH, GPIO.IN, pull_up_down=GPIO.PUD_UP)  # Switch set as input w/ pull-up
+    GPIO.setup(PIN_OUTPUT_LED_ON, GPIO.OUT)
 
     running = False
     capture = None
@@ -25,6 +27,8 @@ def main():
         while not running:
             if GPIO.input(PIN_INPUT_SWITCH) == GPIO.HIGH:
                 print "Starting FoYoDo program..."
+
+                GPIO.output(PIN_OUTPUT_LED_ON, GPIO.HIGH)
 
                 running = True
 
