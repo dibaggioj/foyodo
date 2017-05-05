@@ -23,6 +23,7 @@ def main():
 
     try:
         while not running:
+            print("switch %s" % GPIO.input(PIN_INPUT_SWITCH))
             if GPIO.input(PIN_INPUT_SWITCH) != GPIO.HIGH:
                 print "Starting FoYoDo program..."
 
