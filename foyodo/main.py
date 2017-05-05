@@ -28,16 +28,19 @@ def main():
 
                 running = True
 
-                # TODO: uncomment
-                # capture = Capture()
-                # capture.start()
+                capture = Capture()
+                capture.start()
+
+                # Uncomment this if not using a switch and you need to stop with keyboard interrupt
                 # signal.pause()  # sleep until KeyboardInterrupt or SystemExit signal is received
 
             time.sleep(1)
 
+        print("Flip switch to stop FoYoDo.")
+
         while running:
-            print("Flip switch to stop FoYoDo.")
             if GPIO.input(PIN_INPUT_SWITCH) == GPIO.LOW:
+                print("Flipped switch to stop FoYoDo.")
                 raise SystemExit("Flipped switch to stop FoYoDo.")
 
             time.sleep(1)
