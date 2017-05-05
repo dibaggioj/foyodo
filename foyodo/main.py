@@ -31,7 +31,7 @@ def main():
                 # TODO: uncomment
                 # capture = Capture()
                 # capture.start()
-                signal.pause()  # sleep until KeyboardInterrupt or SystemExit signal is received
+                # signal.pause()  # sleep until KeyboardInterrupt or SystemExit signal is received
 
             time.sleep(1)
 
