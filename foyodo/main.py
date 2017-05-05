@@ -23,8 +23,7 @@ def main():
 
     try:
         while not running:
-            print("switch %s" % GPIO.input(PIN_INPUT_SWITCH))
-            if GPIO.input(PIN_INPUT_SWITCH) != GPIO.HIGH:
+            if GPIO.input(PIN_INPUT_SWITCH) == GPIO.HIGH:
                 print "Starting FoYoDo program..."
 
                 running = True
@@ -38,7 +37,7 @@ def main():
 
         while running:
             print("Flip switch to stop FoYoDo.")
-            if GPIO.input(PIN_INPUT_SWITCH) == GPIO.HIGH:
+            if GPIO.input(PIN_INPUT_SWITCH) == GPIO.LOW:
                 raise SystemExit("Flipped switch to stop FoYoDo.")
 
             time.sleep(1)
