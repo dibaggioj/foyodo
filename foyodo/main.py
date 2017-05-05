@@ -56,6 +56,7 @@ def main():
             capture.stop()
             capture.join()
 
+        GPIO.output(PIN_OUTPUT_LED_ON, GPIO.LOW)
         sys.exit()
 
 
