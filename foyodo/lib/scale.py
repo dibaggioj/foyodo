@@ -130,6 +130,12 @@ class Scale(threading.Thread):
         self.twilio_client.messages.create(from_=self.CONFIG["twilio"]["phone"],
                                            to=self.CONFIG["users"][0]["phone"],
                                            body=unicode(message_body))
+        self.twilio_client.messages.create(from_=self.CONFIG["twilio"]["phone"],
+                                           to=self.CONFIG["users"][1]["phone"],
+                                           body=unicode(message_body))
+        self.twilio_client.messages.create(from_=self.CONFIG["twilio"]["phone"],
+                                           to=self.CONFIG["users"][2]["phone"],
+                                           body=unicode(message_body))
 
     def __connect_scale(self):
         """
