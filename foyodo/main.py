@@ -8,7 +8,7 @@ from lib.capture import Capture
 
 
 def main():
-    PIN_INPUT_SWITCH =  11
+    PIN_INPUT_SWITCH = 11
     PIN_OUTPUT_LED_ON = 23
 
     # Set current directory to directory containing main.py. Can get this directory elsewhere with `os.getcwd()`
