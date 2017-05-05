@@ -8,6 +8,11 @@ from lib.capture import Capture
 
 
 def main():
+    """
+    Waits for switch to be turned on and then starts Capture thread and turns on LED.
+    Then waits for switch to be turned off and then stops Capture thread and turns off LED.
+    """
+
     PIN_INPUT_SWITCH = 11
     PIN_OUTPUT_LED_ON = 23
 

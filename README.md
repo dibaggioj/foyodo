@@ -1,5 +1,7 @@
 # FoYoDo
 
+https://foyodo.bitbucket.io
+
 ## Authors
 Nanu Ahluwalia  
 John DiBaggio  
@@ -11,17 +13,19 @@ This is the FoYoDo embedded project for Raspberry Pi
 ## Hardware
 - Raspberry Pi B+ (or newer)  
 - Raspberry Picamera  
-- Dymo M10 USB scale  
 - 5V-12V PIR Motion Sensor  
+- Dymo M10 USB scale  
+- SPDT Switch  
+- LEDs (and resistors)  
 
 ## Included libraries/projects
-- youtube-upload  
-- pyusb  
 - libusb1  
-- twilio  
+- numpy   
 - picamera  
-- RPi.GPIO  
-- numpy  
+- pyusb  
+- RPi  
+- twilio   
+- youtube-upload  (https://github.com/tokland/youtube-upload)  
 
 ## /foyodo/config.json schema
 
