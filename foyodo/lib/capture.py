@@ -32,6 +32,7 @@ class Capture(threading.Thread):
     """
 
     PIN_INPUT_PIR = 18
+    PIN_OUTPUT_LED_MOTION_DETECTED = 24
 
     TIME_SEC_PIR_CALIBRATION = 5   # Time given to PIR sensor to calibrate (10-60 secs according to the data sheet)
     TIME_SEC_PAUSE = 10             # Stop recording video if no motion is sensed for 10 seconds
@@ -52,6 +53,8 @@ class Capture(threading.Thread):
             self.CONFIG = json.load(config_file)
 
         self.twilio_client = Client(self.CONFIG["twilio"]["account"], self.CONFIG["twilio"]["token"])
+
+        GPIO.setup(self.PIN_OUTPUT_LED_MOTION_DETECTED, GPIO.OUT)
 
         self.__init_pir_sensor()
 
@@ -100,6 +103,7 @@ class Capture(threading.Thread):
                     if self.lock_low:
                         self.lock_low = False
                         print("Motion detected at %s millisec" % time.time())
+                        GPIO.output(self.PIN_OUTPUT_LED_MOTION_DETECTED, GPIO.HIGH)
                         self.idleflag = False
                         self.recordflag = True
 
@@ -130,6 +134,7 @@ class Capture(threading.Thread):
                             # after a new motion sequence has been detected
                             self.lock_low = True
                             print("Motion ended at %s millisec" % (time.time() - self.TIME_SEC_PAUSE))
+                            GPIO.output(self.PIN_OUTPUT_LED_MOTION_DETECTED, GPIO.LOW)
                             break
 
                     time.sleep(0.1)
