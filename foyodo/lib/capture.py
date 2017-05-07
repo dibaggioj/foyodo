@@ -60,6 +60,8 @@ class Capture(threading.Thread):
 
 
     def stop(self):
+        GPIO.cleanup()
+
         self.camera.close()
 
         self.scale.stop()
@@ -97,6 +99,7 @@ class Capture(threading.Thread):
         print "## Running capture thread..."
         print "## Starting scale..."
         self.scale.start()
+
         while not self.stopped():
             while self.idleflag is True:
                 if GPIO.input(self.PIN_INPUT_PIR) == GPIO.HIGH:
@@ -143,11 +146,14 @@ class Capture(threading.Thread):
                 self.camera.stop_recording()
                 self.recordflag = False
 
+            # TODO: look into removing this sleep or start up a separate thread to not delay next execution of motion
+            # sensing and video recording
             time.sleep(5)   # Wait until video finishes encoding
             print("Current weight is: %s" % self.scale.weight_current)
             print("Done recording video. Is weight reduced: %s" % self.scale.is_weight_reduced())
 
             if self.scale.is_weight_reduced():
+                # TODO: do this in a separate thread to not delay next execution of motion sensing and video recording
                 print("Current weight is: %s" % self.scale.weight_current)
                 self.scale.release_previous_weight()
                 rc = subprocess.call(["youtube-upload",
@@ -163,5 +169,3 @@ class Capture(threading.Thread):
                 self.scale.release_previous_weight()
 
             self.idleflag = True
-
-        GPIO.cleanup()
